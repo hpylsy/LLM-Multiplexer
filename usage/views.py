@@ -35,25 +35,46 @@ def my_usage_logs(request):
     chart_logs = UsageLog.objects.filter(user=request.user)
     if chart_start:
         chart_logs = chart_logs.filter(request_time__gte=chart_start)
-    daily_usage_map = defaultdict(int)
-    if range_name == "today":
-        for hour in range(24):
-            daily_usage_map[f"{hour:02d}:00"] = 0
+
     model_usage = list(
         chart_logs
         .values("model_name")
         .annotate(total_tokens=Sum("total_tokens"))
         .order_by("-total_tokens")
     )
-    for item in chart_logs.order_by("request_time"):
+
+    # Build token type trend data (same as dashboard)
+    from usage.services import _payload_int
+    trend_map = defaultdict(lambda: {"tokens": 0, "prompt_tokens": 0, "completion_tokens": 0, "cached_tokens": 0, "thinking_tokens": 0})
+    for item in chart_logs.only("request_time", "prompt_tokens", "completion_tokens", "total_tokens", "raw_payload").order_by("request_time"):
         local_time = timezone.localtime(item.request_time)
         if range_name == "today":
             label = local_time.strftime("%H:00")
         else:
             label = local_time.date().isoformat()
-        daily_usage_map[label] += item.total_tokens
-    daily_usage = [{"date": day, "tokens": tokens} for day, tokens in daily_usage_map.items()]
-    return render(request, "usage/my_usage_logs.html", {"logs": logs, "daily_usage": daily_usage, "model_usage": model_usage, "range_name": range_name})
+        trend_map[label]["tokens"] += item.total_tokens
+        trend_map[label]["prompt_tokens"] += item.prompt_tokens
+        trend_map[label]["completion_tokens"] += item.completion_tokens
+        cached = _payload_int(item.raw_payload, ("raw_payload", "tokens", "cached_tokens"), ("tokens", "cached_tokens"), ("cached_tokens",))
+        thinking = _payload_int(item.raw_payload, ("raw_payload", "tokens", "reasoning_tokens"), ("raw_payload", "tokens", "thinking_tokens"), ("tokens", "reasoning_tokens"))
+        trend_map[label]["cached_tokens"] += cached
+        trend_map[label]["thinking_tokens"] += thinking
+
+    # Fill empty hours for today view
+    if range_name == "today":
+        for hour in range(24):
+            key = f"{hour:02d}:00"
+            if key not in trend_map:
+                trend_map[key] = {"tokens": 0, "prompt_tokens": 0, "completion_tokens": 0, "cached_tokens": 0, "thinking_tokens": 0}
+
+    trend_data = [{"date": label, **values} for label, values in sorted(trend_map.items())]
+
+    return render(request, "usage/my_usage_logs.html", {
+        "logs": logs,
+        "trend_data": trend_data,
+        "model_usage": model_usage,
+        "range_name": range_name,
+    })
 
 
 @admin_required

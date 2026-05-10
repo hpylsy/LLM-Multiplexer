@@ -91,6 +91,16 @@
                     <strong>{{ personal_summary.top_model }}</strong>
                 </div>
             </div>
+            {% if personal_summary.models %}
+            <div class="mt-3">
+                <span class="dashboard-model-usage-label">我的模型用量</span>
+                <div class="model-chip-group mt-2">
+                    {% for item in personal_summary.models %}
+                        <span class="model-chip">{{ item.model_name }} · {{ item.total_tokens|token_unit }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
         </div></div>
         {% else %}
         <div class="card panel-card chart-card h-100"><div class="card-body"><h5 class="section-title">🧯 出错模型占比</h5><canvas id="modelPieChart" height="220"></canvas></div></div>
