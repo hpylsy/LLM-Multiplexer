@@ -27,11 +27,16 @@
             <p class="text-muted mb-3">上传 CSV 或 JSONL 格式的使用记录文件。</p>
             <form method="post" enctype="multipart/form-data">
                 {% csrf_token %}
-                <div class="mb-3">
-                    {{ form.source_file }}
+                <div class="file-upload-area mb-3" onclick="document.getElementById('id_source_file').click()">
+                    <input type="file" name="source_file" id="id_source_file" accept=".csv,.jsonl" style="display:none;" onchange="updateFileName(this)">
+                    <div class="file-upload-content" id="fileUploadContent">
+                        <i class="bi bi-cloud-arrow-up" style="font-size: 1.5rem; color: var(--brand);"></i>
+                        <span>点击选择文件或拖拽到此处</span>
+                        <small class="text-muted">支持 .csv / .jsonl 格式</small>
+                    </div>
                 </div>
                 <button class="btn btn-soft rounded-pill px-4" type="submit">
-                    <i class="bi bi-upload me-1"></i>上传文件
+                    <i class="bi bi-upload me-1"></i>上传并导入
                 </button>
             </form>
         </div></div>
@@ -116,5 +121,43 @@ function getCookie(name) {
 <style>
 .spin-animation { animation: spin 1s linear infinite; }
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.file-upload-area {
+    border: 2px dashed rgba(79, 70, 229, 0.25);
+    border-radius: 16px;
+    padding: 1.5rem;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    background: rgba(79, 70, 229, 0.02);
+}
+.file-upload-area:hover {
+    border-color: var(--brand);
+    background: rgba(79, 70, 229, 0.05);
+}
+.file-upload-area.has-file {
+    border-color: rgba(34, 197, 94, 0.5);
+    background: rgba(34, 197, 94, 0.04);
+}
+.file-upload-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+    color: var(--text-soft);
+    font-size: 0.9rem;
+}
 </style>
+<script>
+function updateFileName(input) {
+    var area = input.closest('.file-upload-area');
+    var content = document.getElementById('fileUploadContent');
+    if (input.files.length > 0) {
+        var name = input.files[0].name;
+        content.innerHTML = '<i class="bi bi-file-earmark-check" style="font-size:1.5rem;color:#16a34a;"></i><span style="color:var(--text-main);font-weight:600;">' + name + '</span><small class="text-muted">点击可重新选择</small>';
+        area.classList.add('has-file');
+    } else {
+        content.innerHTML = '<i class="bi bi-cloud-arrow-up" style="font-size:1.5rem;color:var(--brand);"></i><span>点击选择文件或拖拽到此处</span><small class="text-muted">支持 .csv / .jsonl 格式</small>';
+        area.classList.remove('has-file');
+    }
+}
+</script>
 {% endblock %}
