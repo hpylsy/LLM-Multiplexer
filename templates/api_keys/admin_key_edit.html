@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+
+{% block title %}管理员 - 编辑 Key{% endblock %}
+
+{% block content %}
+<div class="card panel-card"><div class="card-body">
+    <h3>编辑 API Key：{{ key.name }}</h3>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button class="btn btn-primary rounded-pill px-4" type="submit">保存</button>
+    </form>
+</div></div>
+{% endblock %}

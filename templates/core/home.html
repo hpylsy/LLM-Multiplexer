@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+
+{% block title %}首页 - PIONEER战队AI中转站{% endblock %}
+
+{% block content %}
+<section class="hero-panel hero-panel-lg hero-home mb-4 overflow-hidden">
+    <div class="row align-items-center g-4">
+        <div class="col-lg-7">
+            <span class="eyebrow-badge mb-3 d-inline-flex">PIONEER AI RELAY</span>
+            <h1 class="display-5 fw-bold mb-3">PIONEER战队AI中转站</h1>
+            <p class="hero-description mb-4">面向战队成员统一提供大模型中转、调用统计与额度管理服务。请严格遵守使用规范，保障队内资源安全、稳定与可持续使用。</p>
+            <div class="d-flex gap-2 flex-wrap">
+            {% if user.is_authenticated %}
+                <a class="btn btn-primary btn-lg rounded-pill px-4" href="/dashboard/public/">查看公开面板</a>
+                <a class="btn btn-outline-primary btn-lg rounded-pill px-4" href="/quota/my/">查看调用信息</a>
+            {% else %}
+                <a class="btn btn-primary btn-lg rounded-pill px-4" href="/accounts/login/">登录系统</a>
+            {% endif %}
+            </div>
+        </div>
+        <div class="col-lg-5">
+            <div class="glass-card hero-rules">
+                <h5 class="mb-3">📌 使用规则</h5>
+                <ul class="rules-list mb-0">
+                    <li>🛠️ 仅限战队训练、研发、调试与开发使用，禁止挪作其他用途。</li>
+                    <li>🔒 密钥仅限本人使用，严禁外借、转交或私下共享。</li>
+                    <li>🌐 严禁将 API 密钥、Base URL、调用示例等信息公开发布到互联网平台。</li>
+                    <li>⚠️ 禁止生成或讨论政治、违法违规及其他敏感内容。</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="team-motto-panel mb-4">
+    <div class="team-motto-overlay"></div>
+    <div class="team-motto-content">
+        <span class="eyebrow-badge mb-3 d-inline-flex">队训</span>
+        <h3 class="mb-2">艰苦奋斗，求实创新，开疆破土，拓海立浪</h3>
+        <p class="mb-0 text-white-50">以工程精神驱动技术实践，以纪律意识守护公共资源。</p>
+    </div>
+</section>
+
+<div class="row g-3">
+    <div class="col-md-4"><div class="card h-100 panel-card feature-card"><div class="card-body"><div class="feature-icon bg-primary-subtle text-primary"><i class="bi bi-person-check"></i></div><h5>成员面板</h5><p>查看个人调用信息、使用记录、模型消耗和额度情况。</p></div></div></div>
+    <div class="col-md-4"><div class="card h-100 panel-card feature-card"><div class="card-body"><div class="feature-icon bg-success-subtle text-success"><i class="bi bi-shield-check"></i></div><h5>管理能力</h5><p>按组管理成员、绑定 API 密钥、同步 usage 并维护排行榜。</p></div></div></div>
+    <div class="col-md-4"><div class="card h-100 panel-card feature-card"><div class="card-body"><div class="feature-icon bg-warning-subtle text-warning"><i class="bi bi-graph-up-arrow"></i></div><h5>战队统计</h5><p>支持按组查看请求量、Token 趋势、模型排行和成员排名。</p></div></div></div>
+</div>
+{% endblock %}

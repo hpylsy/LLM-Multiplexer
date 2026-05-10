@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% load ui_tags %}
+
+{% block body_class %}quota-page{% endblock %}
+
+{% block title %}我的额度{% endblock %}
+
+{% block content %}
+<section class="page-hero mb-4">
+    <span class="eyebrow-badge mb-2 d-inline-flex">Quota</span>
+    <h3 class="mb-1">我的额度</h3>
+    <p class="text-muted mb-0">查看本月额度、API 密钥与调用地址。</p>
+</section>
+
+<div class="row g-4 align-items-stretch">
+    <div class="col-lg-6">
+        <div class="card panel-card h-100 quota-card"><div class="card-body">
+            <h3>本月额度</h3>
+            {% if snapshot %}
+                <p>Token：<strong>{{ snapshot.token_used|token_unit }}</strong> / {{ snapshot.token_limit|token_unit }}</p>
+                <p>Cost：<strong>{{ snapshot.cost_used }}</strong> / {{ snapshot.cost_limit }}</p>
+            {% else %}
+                <p class="text-muted">本月暂无额度数据</p>
+            {% endif %}
+            {% if bound_keys %}
+            <hr>
+            <h5 class="mb-3">调用信息</h5>
+            <div class="api-info-box mb-3">
+                <div class="api-info-row">
+                    <span class="api-info-label">Base URL</span>
+                    <code>{{ cliproxy_base_url }}</code>
+                </div>
+            </div>
+            {% for key in bound_keys %}
+                <div class="api-info-box mb-2">
+                    <div class="api-info-row flex-wrap gap-2">
+                        <span class="api-info-label">API 密钥</span>
+                        <code>{{ key.token_plaintext|default:key.token_masked }}</code>
+                    </div>
+                </div>
+            {% endfor %}
+            {% endif %}
+        </div></div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card panel-card h-100 quota-card quota-tips-card"><div class="card-body">
+            <h4>使用提醒</h4>
+            <ul class="rules-list compact-rules mb-0">
+                <li>复制 API 密钥后仅在可信设备中使用。</li>
+                <li>若发现异常调用，请联系管理员更换密钥。</li>
+                <li>请勿公开分享调用地址与密钥。</li>
+            </ul>
+        </div></div>
+    </div>
+</div>
+{% endblock %}

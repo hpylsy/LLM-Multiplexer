@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% block title %}模型价格设置{% endblock %}
+
+{% block content %}
+<div class="card panel-card"><div class="card-body">
+    <h3 class="mb-3">模型价格设置</h3>
+    <form method="post" class="row g-3 mb-4">
+        {% csrf_token %}
+        <div class="col-md-3">{{ form.model_name }}</div>
+        <div class="col-md-3">{{ form.prompt_price_per_million }}</div>
+        <div class="col-md-3">{{ form.completion_price_per_million }}</div>
+        <div class="col-md-2">{{ form.cached_price_per_million }}</div>
+        <div class="col-md-1"><button class="btn btn-primary w-100" type="submit">保存</button></div>
+    </form>
+    <div class="table-responsive soft-table-wrap">
+        <table class="table soft-table align-middle">
+            <thead><tr><th>模型名称</th><th>提示价格 ($/1M)</th><th>补全价格 ($/1M)</th><th>缓存价格 ($/1M)</th></tr></thead>
+            <tbody>
+            {% for item in pricings %}
+                <tr><td>{{ item.model_name }}</td><td>{{ item.prompt_price_per_million }}</td><td>{{ item.completion_price_per_million }}</td><td>{{ item.cached_price_per_million }}</td></tr>
+            {% empty %}
+                <tr><td colspan="4" class="text-center text-muted">暂无模型价格配置</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div></div>
+{% endblock %}

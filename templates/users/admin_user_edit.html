@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+
+{% block title %}管理员 - 编辑用户{% endblock %}
+
+{% block content %}
+<div class="card panel-card"><div class="card-body">
+    <h3>编辑用户：{{ target_user.username }}</h3>
+    <form method="post" class="mb-4">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button class="btn btn-primary rounded-pill px-4" type="submit" name="save_profile" value="1">保存资料</button>
+    </form>
+    {% if key_form %}
+    <hr>
+    <form method="post" class="mb-4">
+        {% csrf_token %}
+        {{ key_form.as_p }}
+        <button class="btn btn-info rounded-pill px-4" type="submit" name="save_key" value="1">更新绑定密钥</button>
+    </form>
+    {% endif %}
+    <hr>
+    <form method="post" class="mb-4">
+        {% csrf_token %}
+        {{ password_form.as_p }}
+        <button class="btn btn-warning rounded-pill px-4" type="submit" name="save_password" value="1">修改密码</button>
+    </form>
+    <hr>
+    <form method="post" onsubmit="return confirm('确认注销该账户？')">
+        {% csrf_token %}
+        <button class="btn btn-danger rounded-pill px-4" type="submit" name="delete_user" value="1">注销账户</button>
+    </form>
+</div></div>
+{% endblock %}

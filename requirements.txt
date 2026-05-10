@@ -1,0 +1,7 @@
+Django==4.2.16
+psycopg2-binary==2.9.9
+python-dotenv==1.0.1
+gunicorn==22.0.0
+requests==2.32.3
+openpyxl==3.1.5
+pypinyin==0.54.0

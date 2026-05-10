@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+{% load ui_tags %}
+
+{% block body_class %}usage-page{% endblock %}
+
+{% block title %}我的使用记录{% endblock %}
+
+{% block content %}
+<section class="page-hero mb-4">
+    <span class="eyebrow-badge mb-2 d-inline-flex">Usage</span>
+    <h3 class="mb-1">我的使用记录</h3>
+    <p class="text-muted mb-0">查看近期请求、每日变化趋势与各模型 token 消耗情况。</p>
+</section>
+
+{{ daily_usage|json_script:'daily-usage-data' }}
+{{ model_usage|json_script:'model-usage-data' }}
+
+<div class="row g-4 mb-4">
+    <div class="col-lg-8">
+        <div class="card panel-card chart-card usage-trend-card h-100"><div class="card-body">
+            <h3>每日使用变化</h3>
+            <div class="toolbar-chips mb-3">
+                <a class="btn btn-sm btn-soft {% if range_name == 'today' %}active{% endif %}" href="?range=today">今日</a>
+                <a class="btn btn-sm btn-soft {% if range_name == 'last_7_days' %}active{% endif %}" href="?range=last_7_days">近 7 天</a>
+                <a class="btn btn-sm btn-soft {% if range_name == 'this_month' %}active{% endif %}" href="?range=this_month">本月</a>
+            </div>
+            <div class="model-chip-group">
+                {% for item in model_usage %}
+                    <span class="model-chip">{{ item.model_name }} · {{ item.total_tokens|token_unit }}</span>
+                {% empty %}
+                    <span class="text-muted">暂无模型消耗数据</span>
+                {% endfor %}
+            </div>
+            <canvas id="dailyUsageChart" height="120"></canvas>
+        </div></div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card panel-card chart-card h-100"><div class="card-body">
+            <h3>模型 Token 消耗</h3>
+            <canvas id="modelUsageChart" height="180"></canvas>
+        </div></div>
+    </div>
+</div>
+
+<div class="card panel-card"><div class="card-body">
+    <h3>使用明细</h3>
+    <div class="table-responsive soft-table-wrap">
+        <table class="table soft-table align-middle">
+            <thead><tr><th>时间</th><th>模型</th><th>Token</th><th>Cost</th><th>状态</th></tr></thead>
+            <tbody>
+            {% for item in logs %}
+                <tr>
+                    <td>{{ item.request_time|date:'Y-m-d H:i:s' }}</td>
+                    <td>{{ item.model_name }}</td>
+                    <td>{{ item.total_tokens|token_unit }}</td>
+                    <td>{{ item.estimated_cost }}</td>
+                    <td>{% if item.is_error %}<span class="badge text-bg-danger">错误{% else %}<span class="badge text-bg-success">正常{% endif %}</span></td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="5" class="text-center text-muted">暂无记录</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const dailyUsage = JSON.parse(document.getElementById('daily-usage-data').textContent);
+const modelUsage = JSON.parse(document.getElementById('model-usage-data').textContent);
+
+const formatUsageTick = (value) => {
+    if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
+    if (value >= 1000) return `${Math.round(value / 1000)}K`;
+    return value;
+};
+
+new Chart(document.getElementById('dailyUsageChart'), {
+    type: 'line',
+    data: {
+        labels: dailyUsage.map(x => x.date),
+        datasets: [{
+            label: 'Token',
+            data: dailyUsage.map(x => x.tokens),
+            borderColor: '#4f46e5',
+            backgroundColor: 'rgba(79,70,229,.16)',
+            fill: true,
+            tension: 0.42,
+            cubicInterpolationMode: 'monotone',
+            pointRadius: 3,
+            pointHoverRadius: 5,
+            borderWidth: 2,
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        aspectRatio: 3,
+        interaction: {mode: 'index', intersect: false},
+        plugins: {
+            legend: {display: false},
+            tooltip: {
+                callbacks: {
+                    label: (context) => `Token: ${Number(context.parsed.y || 0).toLocaleString()}`
+                }
+            }
+        },
+        scales: {
+            x: {grid: {color: 'rgba(148,163,184,.18)'}, ticks: {maxRotation: 0}},
+            y: {beginAtZero: true, grid: {color: 'rgba(148,163,184,.18)'}, ticks: {callback: formatUsageTick}}
+        }
+    }
+});
+
+new Chart(document.getElementById('modelUsageChart'), {
+    type: 'doughnut',
+    data: {
+        labels: modelUsage.map(x => x.model_name),
+        datasets: [{data: modelUsage.map(x => x.total_tokens), backgroundColor: ['#4f46e5','#06b6d4','#f59e0b','#ef4444','#8b5cf6']}]
+    },
+    options: {responsive: true}
+});
+</script>
+{% endblock %}

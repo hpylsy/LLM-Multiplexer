@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% load ui_tags %}
+
+{% block title %}管理员 - 用户列表{% endblock %}
+
+{% block content %}
+<section class="page-hero mb-4">
+    <span class="eyebrow-badge mb-2 d-inline-flex">Admin</span>
+    <h3 class="mb-1">用户列表</h3>
+    <p class="text-muted mb-0">集中查看实验室成员角色、分组、年级与本月使用情况。</p>
+</section>
+
+<div class="card panel-card"><div class="card-body">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3 class="mb-0">用户列表</h3>
+        <a class="btn btn-primary rounded-pill px-4" href="/users/admin/create/">创建用户并绑定 Key</a>
+    </div>
+    <div class="table-responsive soft-table-wrap">
+        <table class="table soft-table align-middle">
+            <thead><tr><th>用户名</th><th>显示名</th><th>角色</th><th>分组</th><th>年级</th><th>月消耗 Token</th><th></th></tr></thead>
+            <tbody>
+            {% for item in users %}
+                <tr>
+                    <td>{{ item.username }}</td>
+                    <td>{{ item.profile.display_name }}</td>
+                    <td>{{ item.profile.get_role_display }}</td>
+                    <td>{{ item.profile.lab_group|default:'-' }}</td>
+                    <td>{{ item.profile.grade|default:'-' }}</td>
+                    <td>{{ monthly_usage|get_item:item.id|default:'0' }}</td>
+                    <td><a class="btn btn-sm btn-soft" href="/users/admin/{{ item.id }}/edit/">编辑</a></td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div></div>
+{% endblock %}

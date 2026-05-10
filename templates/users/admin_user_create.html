@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+
+{% block title %}管理员 - 创建用户与绑定 Key{% endblock %}
+
+{% block content %}
+<section class="page-hero mb-4">
+    <span class="eyebrow-badge mb-2 d-inline-flex">Admin</span>
+    <h3 class="mb-1">创建用户并绑定 CLIProxy Key</h3>
+    <p class="text-muted mb-0">管理员可直接创建实验室账号，并将 cliproxy API Key 明文绑定到该用户。</p>
+</section>
+
+<div class="card panel-card"><div class="card-body admin-form-card">
+    <form method="post">
+        {% csrf_token %}
+        {% if form.errors %}
+        <div class="alert alert-danger">
+            {{ form.errors }}
+        </div>
+        {% endif %}
+        <div class="row g-4">
+            <div class="col-lg-6">
+                <div class="form-section-card h-100">
+                    <h5 class="mb-3">账号信息</h5>
+                    <div class="mb-3">
+                        <label class="form-label">显示名</label>
+                        {{ form.display_name }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">用户名</label>
+                        {{ form.username }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">初始密码</label>
+                        {{ form.password }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">实验室分组</label>
+                        {{ form.lab_group }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">年级</label>
+                        {{ form.grade }}
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label">队员身份</label>
+                        {{ form.member_type }}
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="form-section-card h-100">
+                    <h5 class="mb-3">CLIProxy 绑定</h5>
+                    <div class="mb-3">
+                        <label class="form-label">CLIProxy API Key</label>
+                        {{ form.cliproxy_key_plaintext }}
+                    </div>
+                    <div class="small text-muted">创建后会自动与该账号一对一绑定，并用于 usage 归属统计。</div>
+                </div>
+            </div>
+        </div>
+        <div class="mt-4">
+            <button class="btn btn-primary rounded-pill px-4" type="submit">创建用户并绑定 Key</button>
+        </div>
+    </form>
+</div></div>
+{% endblock %}

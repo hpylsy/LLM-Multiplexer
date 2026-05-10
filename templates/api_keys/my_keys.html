@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+{% block title %}我的 API Keys{% endblock %}
+
+{% block content %}
+<section class="page-hero mb-4">
+    <span class="eyebrow-badge mb-2 d-inline-flex">API Keys</span>
+    <h3 class="mb-1">我的 API Keys</h3>
+    <p class="text-muted mb-0">查看已经创建的密钥摘要，或提交新的申请。</p>
+</section>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h3 class="mb-0">密钥列表</h3>
+    <a class="btn btn-primary rounded-pill px-4" href="/keys/request/">申请新 Key</a>
+</div>
+
+{% if latest_plain_token %}
+<div class="alert alert-warning">
+    <strong>请立即保存新 Token：</strong> <code>{{ latest_plain_token }}</code>
+</div>
+{% endif %}
+
+<div class="card panel-card"><div class="card-body">
+    <div class="table-responsive soft-table-wrap">
+        <table class="table soft-table align-middle">
+            <thead><tr><th>名称</th><th>摘要</th><th>状态</th><th>创建时间</th><th>最后使用</th></tr></thead>
+            <tbody>
+            {% for key in keys %}
+                <tr>
+                    <td>{{ key.name }}</td>
+                    <td><code>{{ key.token_masked }}</code></td>
+                    <td><span class="badge text-bg-secondary">{{ key.get_status_display }}</span></td>
+                    <td>{{ key.created_at|date:'Y-m-d H:i' }}</td>
+                    <td>{{ key.last_used_at|date:'Y-m-d H:i'|default:'-' }}</td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="5" class="text-center text-muted">暂无 API Key</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div></div>
+{% endblock %}

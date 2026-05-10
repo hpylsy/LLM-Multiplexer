@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+
+{% block title %}Usage 摘要{% endblock %}
+
+{% block content %}
+<div class="card panel-card"><div class="card-body">
+    <h3>Usage 摘要</h3>
+    {% if public_dashboard_enabled %}
+        <p class="text-muted">这里提供最近 usage 记录预览。</p>
+    {% endif %}
+    <div class="table-responsive soft-table-wrap">
+        <table class="table soft-table align-middle">
+            <thead><tr><th>时间</th><th>模型</th><th>请求 ID</th><th>Token</th><th>状态码</th></tr></thead>
+            <tbody>
+                {% for item in logs %}
+                    <tr><td>{{ item.request_time|date:'Y-m-d H:i' }}</td><td>{{ item.model_name }}</td><td>{{ item.request_id }}</td><td>{{ item.total_tokens }}</td><td>{{ item.status_code }}</td></tr>
+                {% empty %}
+                    <tr><td colspan="5" class="text-center text-muted">暂无数据</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div></div>
+{% endblock %}

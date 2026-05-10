@@ -1,0 +1,131 @@
+{{ dashboard.trend|json_script:'trend-data' }}
+{{ dashboard.model_rank|json_script:'model-rank-data' }}
+{{ dashboard.error_model_rank|json_script:'error-model-rank-data' }}
+{{ dashboard.user_rank|json_script:'user-rank-data' }}
+<script>
+const parseJsonScript = (id) => {
+    const el = document.getElementById(id);
+    return el ? JSON.parse(el.textContent) : [];
+};
+
+const trendData = parseJsonScript('trend-data');
+const modelRank = parseJsonScript('model-rank-data');
+const errorModelRank = parseJsonScript('error-model-rank-data');
+const userRank = parseJsonScript('user-rank-data');
+
+const calcSuggestedMax = (values) => {
+    const max = Math.max(...values, 0);
+    if (max <= 0) return 1;
+    return Math.ceil(max * 1.15);
+};
+
+const formatTokenTick = (value) => {
+    if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
+    if (value >= 1000) return `${Math.round(value / 1000)}K`;
+    return value;
+};
+
+const makeTokenDataset = (label, key, borderColor, backgroundColor) => ({
+    label,
+    data: trendData.map(x => x[key] || 0),
+    borderColor,
+    backgroundColor,
+    fill: true,
+    tension: 0.42,
+    cubicInterpolationMode: 'monotone',
+    pointRadius: 4,
+    pointHoverRadius: 6,
+    borderWidth: 2.5,
+});
+
+new Chart(document.getElementById('trendChart'), {
+    type: 'line',
+    data: {
+        labels: trendData.map(x => x.date),
+        datasets: [
+            makeTokenDataset('输入 Tokens', 'prompt_tokens', '#85827b', 'rgba(133,130,123,.22)'),
+            makeTokenDataset('输出 Tokens', 'completion_tokens', '#22c55e', 'rgba(34,197,94,.18)'),
+            makeTokenDataset('缓存 Tokens', 'cached_tokens', '#f59e0b', 'rgba(245,158,11,.16)'),
+            makeTokenDataset('思考 Tokens', 'thinking_tokens', '#8b5cf6', 'rgba(139,92,246,.14)'),
+        ]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        aspectRatio: 3.05,
+        interaction: {mode: 'index', intersect: false},
+        plugins: {
+            legend: {display: false},
+            tooltip: {
+                callbacks: {
+                    label: (context) => `${context.dataset.label}: ${Number(context.parsed.y || 0).toLocaleString()}`
+                }
+            }
+        },
+        scales: {
+            x: {grid: {color: 'rgba(148,163,184,.18)'}, ticks: {maxRotation: 0}},
+            y: {
+                beginAtZero: true,
+                suggestedMax: calcSuggestedMax(trendData.flatMap(x => [x.prompt_tokens || 0, x.completion_tokens || 0, x.cached_tokens || 0, x.thinking_tokens || 0])),
+                grid: {color: 'rgba(148,163,184,.18)'},
+                ticks: {callback: formatTokenTick}
+            }
+        }
+    }
+});
+
+const modelPieCanvas = document.getElementById('modelPieChart');
+if (modelPieCanvas) {
+    new Chart(modelPieCanvas, {
+        type: 'pie',
+        data: {
+            labels: errorModelRank.map(x => x.model_name),
+            datasets: [{data: errorModelRank.map(x => x.total_errors || 0)}]
+        }
+    });
+}
+
+new Chart(document.getElementById('modelBarChart'), {
+    type: 'bar',
+    data: {
+        labels: modelRank.map(x => x.model_name),
+        datasets: [{
+            label: 'Token',
+            data: modelRank.map(x => x.total_tokens || 0),
+            backgroundColor: '#0d6efd',
+            minBarLength: 6,
+        }]
+    },
+    options: {
+        responsive: true,
+        scales: {
+            y: {
+                beginAtZero: true,
+                suggestedMax: calcSuggestedMax(modelRank.map(x => x.total_tokens || 0)),
+            }
+        }
+    }
+});
+
+new Chart(document.getElementById('userBarChart'), {
+    type: 'bar',
+    data: {
+        labels: userRank.map(x => x.display_name || '未设置显示名'),
+        datasets: [{
+            label: 'Token',
+            data: userRank.map(x => x.total_tokens || 0),
+            backgroundColor: '#6f42c1',
+            minBarLength: 6,
+        }]
+    },
+    options: {
+        responsive: true,
+        scales: {
+            y: {
+                beginAtZero: true,
+                suggestedMax: calcSuggestedMax(userRank.map(x => x.total_tokens || 0)),
+            }
+        }
+    }
+});
+</script>

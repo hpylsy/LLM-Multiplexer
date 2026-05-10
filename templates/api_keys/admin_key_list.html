@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+
+{% block title %}管理员 - Key 列表{% endblock %}
+
+{% block content %}
+<section class="page-hero mb-4">
+    <span class="eyebrow-badge mb-2 d-inline-flex">Admin</span>
+    <h3 class="mb-1">全部 API Key</h3>
+    <p class="text-muted mb-0">集中管理全部密钥状态、有效期与备注。</p>
+</section>
+
+<div class="card panel-card"><div class="card-body">
+    <h3>全部 API Key</h3>
+    <div class="table-responsive soft-table-wrap">
+        <table class="table soft-table align-middle">
+            <thead><tr><th>用户</th><th>名称</th><th>摘要</th><th>状态</th><th>创建时间</th><th>操作</th></tr></thead>
+            <tbody>
+            {% for key in keys %}
+                <tr>
+                    <td>{{ key.user.username }}</td>
+                    <td>{{ key.name }}</td>
+                    <td><code>{{ key.token_masked }}</code></td>
+                    <td>{{ key.get_status_display }}</td>
+                    <td>{{ key.created_at|date:'Y-m-d H:i' }}</td>
+                    <td><a class="btn btn-sm btn-soft" href="/keys/admin/{{ key.id }}/edit/">编辑</a></td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div></div>
+{% endblock %}

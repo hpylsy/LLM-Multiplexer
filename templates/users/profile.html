@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+
+{% block title %}个人中心{% endblock %}
+
+{% block content %}
+<section class="page-hero mb-4">
+    <span class="eyebrow-badge mb-2 d-inline-flex">Profile</span>
+    <h3 class="mb-1">个人中心</h3>
+    <p class="text-muted mb-0">维护你的展示信息、实验室分组与面板可见性设置。</p>
+</section>
+
+<div class="row g-4">
+    <div class="col-lg-7">
+        <div class="card panel-card"><div class="card-body">
+            <h3 class="mb-3">个人信息</h3>
+            <form method="post">
+                {% csrf_token %}
+                {{ form.as_p }}
+                <button class="btn btn-primary rounded-pill px-4" type="submit">保存修改</button>
+            </form>
+        </div></div>
+    </div>
+    <div class="col-lg-5">
+        <div class="card panel-card h-100"><div class="card-body">
+            <h4>近期额度快照</h4>
+            <ul class="list-group list-group-flush clean-list-group">
+                {% for item in snapshots %}
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>{{ item.year }}-{{ item.month|stringformat:'02d' }}</span>
+                        <span>{{ item.token_used }}/{{ item.token_limit }}</span>
+                    </li>
+                {% empty %}
+                    <li class="list-group-item text-muted">暂无额度快照</li>
+                {% endfor %}
+            </ul>
+        </div></div>
+    </div>
+</div>
+{% endblock %}

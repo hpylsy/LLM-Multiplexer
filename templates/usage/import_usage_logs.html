@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+
+{% block title %}导入 Usage 日志{% endblock %}
+
+{% block content %}
+<section class="page-hero mb-4">
+    <span class="eyebrow-badge mb-2 d-inline-flex">Sync</span>
+    <h3 class="mb-1">同步与导入 Usage</h3>
+    <p class="text-muted mb-0">默认推荐直接从 CLIProxy 自动同步；手动上传 CSV / JSONL 仅作为补充方式。</p>
+</section>
+
+<div class="row g-4">
+    <div class="col-lg-5">
+        <div class="card panel-card h-100"><div class="card-body">
+            <h3>自动同步（推荐）</h3>
+            <p class="text-muted">如果 CLIProxy 管理接口已启用统计，你通常不需要手动上传日志，只需要点击下面按钮即可。</p>
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <button class="btn btn-primary rounded-pill px-4" type="submit" name="sync_cliproxy" value="1">从 CLIProxy 同步</button>
+                <p class="text-muted small mt-3 mb-0">当前支持一键读取 CLIProxy 的 usage 明细并自动归属到绑定账号。</p>
+            </form>
+        </div></div>
+    </div>
+    <div class="col-lg-7">
+        <div class="card panel-card h-100 mb-4"><div class="card-body">
+            <h4>手动导入（备用）</h4>
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                {{ form.as_p }}
+                <button class="btn btn-soft rounded-pill px-4" type="submit">上传 CSV / JSONL</button>
+            </form>
+        </div></div>
+        <div class="card panel-card h-100"><div class="card-body">
+            <h4>最近导入任务</h4>
+            <div class="table-responsive soft-table-wrap"><table class="table table-sm soft-table align-middle">
+                <thead><tr><th>时间</th><th>来源</th><th>成功</th><th>跳过</th><th>失败</th></tr></thead>
+                <tbody>
+                {% for job in jobs %}
+                    <tr><td>{{ job.created_at|date:'Y-m-d H:i' }}</td><td>{{ job.source_name }}</td><td>{{ job.imported_count }}</td><td>{{ job.skipped_count }}</td><td>{{ job.failed_count }}</td></tr>
+                {% empty %}
+                    <tr><td colspan="5" class="text-center text-muted">暂无导入记录</td></tr>
+                {% endfor %}
+                </tbody>
+            </table></div>
+        </div></div>
+    </div>
+</div>
+{% endblock %}

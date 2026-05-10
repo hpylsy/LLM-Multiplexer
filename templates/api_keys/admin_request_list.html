@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+
+{% block title %}管理员 - Key 申请审批{% endblock %}
+
+{% block content %}
+<div class="card panel-card"><div class="card-body">
+    <h3>Key 申请审批</h3>
+    <div class="table-responsive soft-table-wrap">
+        <table class="table soft-table align-middle">
+            <thead><tr><th>用户</th><th>名称</th><th>申请模型</th><th>申请额度</th><th>状态</th><th>操作</th></tr></thead>
+            <tbody>
+            {% for item in requests %}
+                <tr>
+                    <td>{{ item.user.username }}</td>
+                    <td>{{ item.name }}</td>
+                    <td>{{ item.requested_models|default:'-' }}</td>
+                    <td>{{ item.requested_quota }}</td>
+                    <td>{{ item.get_status_display }}</td>
+                    <td><a class="btn btn-sm btn-soft" href="/keys/admin/requests/{{ item.id }}/review/">审批</a></td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div></div>
+{% endblock %}

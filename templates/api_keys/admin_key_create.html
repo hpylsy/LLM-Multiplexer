@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+
+{% block title %}管理员 - 创建 Key{% endblock %}
+
+{% block content %}
+<div class="card panel-card"><div class="card-body">
+    <h3>为 {{ target_user.username }} 创建 API Key</h3>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button class="btn btn-primary rounded-pill px-4" type="submit">创建</button>
+    </form>
+</div></div>
+{% endblock %}

@@ -1,0 +1,158 @@
+{% load ui_tags %}
+<section class="page-hero mb-4">
+    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
+        <div>
+            <span class="eyebrow-badge mb-2 d-inline-flex">📊 Dashboard</span>
+            <h3 class="mb-1">{{ page_title }}</h3>
+            <p class="text-muted mb-0">按时间范围查看请求量、Token 消耗、错误率与模型分布 ✨</p>
+        </div>
+        <div class="toolbar-chips">
+            <a class="btn btn-sm btn-soft {% if range_name == 'today' %}active{% endif %}" href="?range=today&group={{ group_name|default:'all' }}&grade={{ grade_name|default:'all' }}" onclick="document.body.classList.add('dashboard-navigating')">今日</a>
+            <a class="btn btn-sm btn-soft {% if range_name == 'last_7_days' %}active{% endif %}" href="?range=last_7_days&group={{ group_name|default:'all' }}&grade={{ grade_name|default:'all' }}" onclick="document.body.classList.add('dashboard-navigating')">近 7 天</a>
+            <a class="btn btn-sm btn-soft {% if range_name == 'this_month' %}active{% endif %}" href="?range=this_month&group={{ group_name|default:'all' }}&grade={{ grade_name|default:'all' }}" onclick="document.body.classList.add('dashboard-navigating')">本月</a>
+            <select class="form-select form-select-sm group-select" onchange="document.body.classList.add('dashboard-navigating'); location.href='?range={{ range_name }}&group=' + this.value + '&grade={{ grade_name|default:'all' }}'">
+                <option value="all" {% if group_name == 'all' %}selected{% endif %}>全队</option>
+                {% for option in group_options %}
+                    <option value="{{ option }}" {% if option == group_name %}selected{% endif %}>{{ option }}</option>
+                {% endfor %}
+            </select>
+            <select class="form-select form-select-sm group-select" onchange="document.body.classList.add('dashboard-navigating'); location.href='?range={{ range_name }}&group={{ group_name }}&grade=' + this.value">
+                <option value="all" {% if grade_name == 'all' %}selected{% endif %}>全部年级</option>
+                {% for option in grade_options %}
+                    <option value="{{ option }}" {% if option == grade_name %}selected{% endif %}>{{ option }}级</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+</section>
+
+<div class="row g-3 mb-4">
+    <div class="col-xl-2 col-md-4 col-6"><div class="card panel-card stat-card stat-card-primary"><div class="card-body"><div class="label">🚀 总请求数</div><div class="value">{{ dashboard.total_requests }}</div></div></div></div>
+    <div class="col-xl-3 col-md-6 col-6"><div class="card panel-card stat-card stat-card-blue"><div class="card-body"><div class="label">🧮 已消耗 Token</div><div class="value">{{ dashboard.total_tokens|token_unit }}</div></div></div></div>
+    <div class="col-xl-3 col-md-6 col-6"><div class="card panel-card stat-card stat-card-violet"><div class="card-body"><div class="label">💵 Token 价值</div><div class="value">${{ dashboard.total_cost }}</div></div></div></div>
+    <div class="col-xl-2 col-md-4 col-6"><div class="card panel-card stat-card stat-card-danger"><div class="card-body"><div class="label">⚠️ 错误率</div><div class="value">{{ dashboard.error_rate }}%</div></div></div></div>
+    <div class="col-xl-2 col-md-4 col-6"><div class="card panel-card stat-card stat-card-success"><div class="card-body"><div class="label">👥 活跃队员</div><div class="value">{{ dashboard.active_users }}</div></div></div></div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-lg-8">
+        <div class="card panel-card chart-card h-100"><div class="card-body token-trend-card">
+            <div class="token-trend-header">
+                <h5 class="section-title mb-0">📈 Token 类型分布</h5>
+                <div class="token-legend" aria-label="Token 类型图例">
+                    <span class="token-legend-item"><i style="--legend-color:#85827b"></i>输入 Tokens</span>
+                    <span class="token-legend-item"><i style="--legend-color:#22c55e"></i>输出 Tokens</span>
+                    <span class="token-legend-item"><i style="--legend-color:#f59e0b"></i>缓存 Tokens</span>
+                    <span class="token-legend-item"><i style="--legend-color:#8b5cf6"></i>思考 Tokens</span>
+                </div>
+            </div>
+            <div class="token-trend-frame"><canvas id="trendChart" height="130"></canvas></div>
+            <div class="dashboard-model-usage">
+                <span class="dashboard-model-usage-label">模型使用量</span>
+                <div class="model-chip-group">
+                    {% if personal_summary %}
+                        {% for item in personal_summary.models %}
+                            <span class="model-chip">{{ item.model_name }} · {{ item.total_tokens|token_unit }}</span>
+                        {% empty %}
+                            <span class="text-muted">当前时间范围内暂无个人使用记录</span>
+                        {% endfor %}
+                    {% else %}
+                        {% for item in dashboard.model_rank %}
+                            <span class="model-chip">{{ item.model_name }} · {{ item.total_tokens|token_unit }}</span>
+                        {% empty %}
+                            <span class="text-muted">暂无模型消耗数据</span>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+            </div>
+        </div></div>
+    </div>
+    <div class="col-lg-4">
+        {% if personal_summary %}
+        <div class="card panel-card chart-card h-100"><div class="card-body">
+            <h5 class="section-title">🪪 我的使用概览</h5>
+            <div class="personal-summary-stack">
+                <div class="personal-summary-row">
+                    <div class="personal-summary-item">
+                        <span>我的 Token 消耗</span>
+                        <strong>{{ personal_summary.total_tokens|token_unit }}</strong>
+                    </div>
+                    <div class="personal-summary-item">
+                        <span>使用模型数</span>
+                        <strong>{{ personal_summary.model_count }}</strong>
+                    </div>
+                </div>
+                <div class="personal-summary-item">
+                    <span>当前排名</span>
+                    <strong>第 {{ personal_summary.rank }} 名 / 共 {{ personal_summary.total_users }} 人</strong>
+                </div>
+                <div class="personal-summary-item">
+                    <span>最常用模型</span>
+                    <strong>{{ personal_summary.top_model }}</strong>
+                </div>
+            </div>
+        </div></div>
+        {% else %}
+        <div class="card panel-card chart-card h-100"><div class="card-body"><h5 class="section-title">🧯 出错模型占比</h5><canvas id="modelPieChart" height="220"></canvas></div></div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-lg-6"><div class="card panel-card chart-card h-100"><div class="card-body"><h5 class="section-title">🤖 模型排行榜</h5><canvas id="modelBarChart" height="180"></canvas></div></div></div>
+    <div class="col-lg-6"><div class="card panel-card chart-card h-100"><div class="card-body"><h5 class="section-title">🏅 队员排行榜</h5><canvas id="userBarChart" height="180"></canvas></div></div></div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-6">
+        <div class="card panel-card h-100"><div class="card-body">
+            <h5 class="section-title">🧾 队员 Token 使用情况</h5>
+            <div class="table-responsive soft-table-wrap scroll-table"><table class="table table-sm soft-table align-middle">
+                <thead><tr><th>队员</th><th>分组</th><th>最高使用模型</th><th>请求数</th><th>Token</th></tr></thead>
+                <tbody>
+                {% for item in dashboard.key_rank %}
+                    <tr><td>{{ item.display_name }}</td><td>{{ item.group_name }}</td><td>{{ item.top_model }}</td><td>{{ item.total_requests }}</td><td>{{ item.total_tokens|token_unit }}</td></tr>
+                {% empty %}
+                    <tr><td colspan="5" class="text-center text-muted">暂无数据</td></tr>
+                {% endfor %}
+                </tbody>
+            </table></div>
+        </div></div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card panel-card h-100"><div class="card-body">
+            <h5 class="section-title">🚨 最近错误请求</h5>
+            <div class="table-responsive soft-table-wrap scroll-table"><table class="table table-sm soft-table align-middle">
+                <thead><tr><th>时间</th><th>模型</th><th>用户</th><th>错误</th></tr></thead>
+                <tbody>
+                {% for item in dashboard.recent_errors %}
+                    <tr><td>{{ item.request_time|date:'m-d H:i' }}</td><td>{{ item.model_name }}</td><td>{{ item.display_name|default:'-' }}</td><td>{{ item.error_message|default:item.status_code }}</td></tr>
+                {% empty %}
+                    <tr><td colspan="4" class="text-center text-muted">暂无错误请求</td></tr>
+                {% endfor %}
+                </tbody>
+            </table></div>
+        </div></div>
+    </div>
+</div>
+
+{% if request.user.is_staff or request.user.profile.role == 'admin' %}
+<div class="row g-4 mt-1">
+    <div class="col-12">
+        <div class="card panel-card h-100"><div class="card-body">
+            <h5 class="section-title">管理视角补充信息</h5>
+            <p class="text-muted mb-3">管理员面板展示完整队内统计，普通成员面板仅保留与个人相关的公开视图和受控排行榜。</p>
+            <div class="table-responsive soft-table-wrap scroll-table"><table class="table table-sm soft-table align-middle">
+                <thead><tr><th>队员</th><th>最近累计 Token</th></tr></thead>
+                <tbody>
+                {% for item in dashboard.recent_active_users %}
+                    <tr><td>{{ item.display_name|default:'未设置显示名' }}</td><td>{{ item.last_time|token_unit }}</td></tr>
+                {% empty %}
+                    <tr><td colspan="2" class="text-center text-muted">暂无数据</td></tr>
+                {% endfor %}
+                </tbody>
+            </table></div>
+        </div></div>
+    </div>
+</div>
+{% endif %}
