@@ -112,12 +112,14 @@ CLIPROXY_MANAGEMENT_KEY = os.getenv("CLIPROXY_MANAGEMENT_KEY", "")
 
 # --- Security settings (production) ---
 if not DEBUG:
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = "DENY"
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    # Only enable secure cookies when HTTPS is configured
+    if "https" in CSRF_TRUSTED_ORIGINS[0] if CSRF_TRUSTED_ORIGINS else False:
+        SESSION_COOKIE_SECURE = True
+        CSRF_COOKIE_SECURE = True
 
 # --- Logging ---
 LOGGING = {
