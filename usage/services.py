@@ -117,35 +117,37 @@ def import_usage_records(records, source_type, source_name):
     imported = skipped = failed = 0
     errors = []
 
-    # Pre-normalize all records and collect request_ids for batch lookup
-    normalized = []
+    # Quick pre-filter: extract request_ids first (cheap) and batch check existence
+    raw_request_ids = []
+    for raw in records:
+        rid = str(raw.get("request_id") or "").strip()
+        if rid:
+            raw_request_ids.append(rid)
+
+    # Batch lookup in chunks of 500 to avoid overly large IN clauses
+    existing_ids = set()
+    for i in range(0, len(raw_request_ids), 500):
+        chunk = raw_request_ids[i:i + 500]
+        existing_ids.update(
+            UsageLog.objects.filter(request_id__in=chunk).values_list("request_id", flat=True)
+        )
+
+    # Only normalize and import records that are actually new
     for index, raw in enumerate(records, start=1):
         try:
-            data = normalize_usage_record(raw)
-            if not data["request_id"]:
+            rid = str(raw.get("request_id") or "").strip()
+            if not rid:
                 failed += 1
                 errors.append(f"第 {index} 行缺少 request_id")
                 continue
-            normalized.append((index, data))
-        except Exception as exc:
-            failed += 1
-            errors.append(f"第 {index} 行解析失败: {exc}")
-
-    # Batch check which request_ids already exist
-    all_request_ids = [data["request_id"] for _, data in normalized]
-    existing_ids = set(
-        UsageLog.objects.filter(request_id__in=all_request_ids)
-        .values_list("request_id", flat=True)
-    )
-
-    # Process records
-    for index, data in normalized:
-        try:
-            if data["request_id"] in existing_ids:
+            if rid in existing_ids:
                 skipped += 1
                 continue
+            # Only do expensive normalization for new records
+            data = normalize_usage_record(raw)
             user, api_key = resolve_related_objects(data)
             UsageLog.objects.create(**data, user=user, api_key=api_key)
+            existing_ids.add(rid)  # Prevent duplicates within same batch
             imported += 1
         except Exception as exc:
             failed += 1
