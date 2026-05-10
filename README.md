@@ -2,7 +2,7 @@
 
 一个开箱即用的 **大模型 API 中转站管理门户**，为团队提供统一的 API 密钥管理、使用量统计、成员额度管控和可视化仪表盘。
 
-搭配 [CLIProxyAPIPlus](https://github.com/hpylsy/CLIProxyAPI) 使用，可以快速搭建一套完整的团队 AI API 中转 + 管理方案。
+搭配 [CLIProxyAPIPlus](https://github.com/hpylsy/CLIProxyAPIPlus) 使用，可以快速搭建一套完整的团队 AI API 中转 + 管理方案。
 
 ![首页截图](docs/screenshots/home.png)
 
@@ -29,7 +29,7 @@
 | 数据库 | PostgreSQL 16 |
 | 前端 | Bootstrap 5.3 + Chart.js 4 |
 | 部署 | Docker Compose 或 裸机 + Nginx |
-| API 代理 | [CLIProxyAPIPlus](https://github.com/hpylsy/CLIProxyAPI) |
+| API 代理 | [CLIProxyAPIPlus](https://github.com/hpylsy/CLIProxyAPIPlus) |
 
 ---
 
@@ -38,7 +38,7 @@
 - 一台 Linux 服务器（推荐 2G 内存以上）
 - Python 3.10+
 - PostgreSQL 12+
-- 一个运行中的 [CLIProxyAPIPlus](https://github.com/hpylsy/CLIProxyAPI)
+- 一个运行中的 [CLIProxyAPIPlus](https://github.com/hpylsy/CLIProxyAPIPlus)
 - （可选）Docker + Docker Compose
 
 ---
@@ -51,7 +51,7 @@
 
 ```bash
 # 参考 CLIProxyAPIPlus 的文档部署
-# https://github.com/hpylsy/CLIProxyAPI
+# https://github.com/hpylsy/CLIProxyAPIPlus
 ```
 
 部署完成后你会得到：
@@ -307,7 +307,7 @@ pioneer-portal/
 
 ## 🔗 相关项目
 
-- **[CLIProxyAPIPlus](https://github.com/hpylsy/CLIProxyAPI)** — 本门户配套的 API 代理服务，支持多模型转发、用量统计、管理接口
+- **[CLIProxyAPIPlus](https://github.com/hpylsy/CLIProxyAPIPlus)** — 本门户配套的 API 代理服务，支持多模型转发、用量统计、管理接口
 
 ---
 
