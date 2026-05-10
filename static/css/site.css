@@ -585,6 +585,8 @@ body.site-body.usage-page {
     background: rgba(79, 70, 229, 0.04);
     border-radius: 16px;
     padding: 0.85rem 1rem;
+    cursor: pointer;
+    transition: border-color 0.2s ease, background 0.15s ease;
 }
 
 .api-info-row {
@@ -853,8 +855,8 @@ select:focus-visible {
 }
 
 .api-info-box code {
-    user-select: all;
     word-break: break-all;
+    cursor: pointer;
 }
 
 /* ===== Login page centering ===== */
