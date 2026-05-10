@@ -142,15 +142,24 @@ function updateBatchBar() {
     var checks = document.querySelectorAll('.user-check:checked');
     var bar = document.getElementById('batchBar');
     var count = document.getElementById('selectedCount');
+    count.textContent = checks.length;
     if (checks.length > 0) {
-        bar.style.display = 'flex !important' ;
-        bar.removeAttribute('style');
-        count.textContent = checks.length;
+        bar.style.cssText = 'display: flex !important;';
     } else {
-        bar.style.display = 'none';
+        bar.style.cssText = 'display: none !important;';
     }
 }
 </script>
 <style>
+.user-check, #selectAll {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    border: 2px solid rgba(79, 70, 229, 0.4);
+}
+.user-check:checked, #selectAll:checked {
+    background-color: var(--brand);
+    border-color: var(--brand);
+}
 </style>
 {% endblock %}
