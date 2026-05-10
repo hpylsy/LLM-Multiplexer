@@ -158,3 +158,42 @@ def admin_user_toggle(request, user_id):
         status_text = "启用" if target_user.is_active else "停用"
         messages.success(request, f"用户 {target_user.username} 已{status_text}")
     return redirect("admin-user-list")
+
+
+@admin_required
+def admin_user_delete(request, user_id):
+    """Delete a user."""
+    target_user = get_object_or_404(User, pk=user_id)
+    if request.method == "POST":
+        username = target_user.username
+        target_user.delete()
+        messages.success(request, f"用户 {username} 已删除")
+    return redirect("admin-user-list")
+
+
+@admin_required
+def admin_user_batch(request):
+    """Batch operations on multiple users."""
+    if request.method == "POST":
+        action = request.POST.get("batch_action", "")
+        user_ids = request.POST.getlist("user_ids")
+        if not user_ids:
+            messages.warning(request, "未选择任何用户")
+            return redirect("admin-user-list")
+
+        users_qs = User.objects.filter(id__in=user_ids, is_staff=False)
+        count = users_qs.count()
+
+        if action == "disable":
+            users_qs.update(is_active=False)
+            messages.success(request, f"已停用 {count} 个用户")
+        elif action == "enable":
+            users_qs.update(is_active=True)
+            messages.success(request, f"已启用 {count} 个用户")
+        elif action == "delete":
+            users_qs.delete()
+            messages.success(request, f"已删除 {count} 个用户")
+        else:
+            messages.warning(request, "未知操作")
+
+    return redirect("admin-user-list")

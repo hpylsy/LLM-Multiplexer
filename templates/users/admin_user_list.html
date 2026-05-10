@@ -44,22 +44,40 @@
     </div>
 </div></div>
 
+<form method="post" action="/users/admin/batch/" id="batchForm">
+{% csrf_token %}
 <div class="card panel-card"><div class="card-body">
+    <!-- Batch action bar -->
+    <div class="d-flex align-items-center gap-2 mb-3" id="batchBar" style="display:none !important;">
+        <span class="text-muted" style="font-size:0.85rem;">已选 <strong id="selectedCount">0</strong> 人</span>
+        <button type="submit" name="batch_action" value="enable" class="btn btn-sm btn-outline-success rounded-pill" onclick="return confirm('确认批量启用所选用户？')">
+            <i class="bi bi-check-circle me-1"></i>批量启用
+        </button>
+        <button type="submit" name="batch_action" value="disable" class="btn btn-sm btn-outline-warning rounded-pill" onclick="return confirm('确认批量停用所选用户？')">
+            <i class="bi bi-pause-circle me-1"></i>批量停用
+        </button>
+        <button type="submit" name="batch_action" value="delete" class="btn btn-sm btn-outline-danger rounded-pill" onclick="return confirm('确认批量删除所选用户？此操作不可撤销！')">
+            <i class="bi bi-trash me-1"></i>批量删除
+        </button>
+    </div>
+
     <div class="table-responsive soft-table-wrap">
         <table class="table soft-table align-middle mb-0">
             <thead><tr>
+                <th style="width:36px;"><input type="checkbox" class="form-check-input" id="selectAll" onchange="toggleAll(this)"></th>
                 <th>用户名</th>
                 <th>显示名</th>
                 <th>分组</th>
                 <th>年级</th>
                 <th>身份</th>
                 <th>状态</th>
-                <th>月消耗 Token</th>
-                <th></th>
+                <th>月消耗</th>
+                <th class="text-end">操作</th>
             </tr></thead>
             <tbody>
             {% for item in users %}
                 <tr {% if not item.is_active %}class="opacity-50"{% endif %}>
+                    <td><input type="checkbox" class="form-check-input user-check" name="user_ids" value="{{ item.id }}" onchange="updateBatchBar()" {% if item.is_staff %}disabled{% endif %}></td>
                     <td class="fw-semibold">{{ item.username }}</td>
                     <td>{{ item.profile.display_name|default:'-' }}</td>
                     <td>{{ item.profile.lab_group|default:'-' }}</td>
@@ -74,24 +92,33 @@
                     </td>
                     <td>{{ monthly_usage|get_item:item.id|default:'0'|token_unit }}</td>
                     <td class="text-end">
-                        <div class="d-inline-flex gap-1">
-                            <a class="btn btn-sm btn-soft" href="/users/admin/{{ item.id }}/edit/">编辑</a>
-                            <form method="post" action="/users/admin/{{ item.id }}/toggle/" style="display:inline;" onsubmit="return confirm('确认{% if item.is_active %}停用{% else %}启用{% endif %}用户 {{ item.username }}？')">
+                        <div class="btn-group btn-group-sm">
+                            <a class="btn btn-outline-primary" href="/users/admin/{{ item.id }}/edit/" title="编辑"><i class="bi bi-pencil"></i></a>
+                            {% if not item.is_staff %}
+                            <form method="post" action="/users/admin/{{ item.id }}/toggle/" style="display:inline;">
                                 {% csrf_token %}
-                                <button type="submit" class="btn btn-sm {% if item.is_active %}btn-outline-danger{% else %}btn-outline-success{% endif %}" style="border-radius:999px;">
-                                    {% if item.is_active %}停用{% else %}启用{% endif %}
+                                <button type="submit" class="btn {% if item.is_active %}btn-outline-warning{% else %}btn-outline-success{% endif %}" title="{% if item.is_active %}停用{% else %}启用{% endif %}" onclick="return confirm('确认{% if item.is_active %}停用{% else %}启用{% endif %} {{ item.username }}？')">
+                                    <i class="bi {% if item.is_active %}bi-pause-fill{% else %}bi-play-fill{% endif %}"></i>
                                 </button>
                             </form>
+                            <form method="post" action="/users/admin/{{ item.id }}/delete/" style="display:inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-outline-danger" title="删除" onclick="return confirm('确认删除用户 {{ item.username }}？此操作不可撤销！')">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                            {% endif %}
                         </div>
                     </td>
                 </tr>
             {% empty %}
-                <tr><td colspan="8" class="text-center text-muted py-4">暂无用户</td></tr>
+                <tr><td colspan="9" class="text-center text-muted py-4">暂无用户</td></tr>
             {% endfor %}
             </tbody>
         </table>
     </div>
 </div></div>
+</form>
 {% endblock %}
 
 {% block extra_js %}
@@ -106,5 +133,30 @@ function applyFilter() {
     if (status !== 'all') params.set('status', status);
     location.href = '/users/admin/list/' + (params.toString() ? '?' + params.toString() : '');
 }
+
+function toggleAll(el) {
+    var checks = document.querySelectorAll('.user-check:not(:disabled)');
+    checks.forEach(function(c) { c.checked = el.checked; });
+    updateBatchBar();
+}
+
+function updateBatchBar() {
+    var checks = document.querySelectorAll('.user-check:checked');
+    var bar = document.getElementById('batchBar');
+    var count = document.getElementById('selectedCount');
+    if (checks.length > 0) {
+        bar.style.display = 'flex !important' ;
+        bar.removeAttribute('style');
+        count.textContent = checks.length;
+    } else {
+        bar.style.display = 'none';
+    }
+}
 </script>
+<style>
+.btn-group .btn { border-radius: 0; }
+.btn-group .btn:first-child { border-top-left-radius: 8px; border-bottom-left-radius: 8px; }
+.btn-group .btn:last-child { border-top-right-radius: 8px; border-bottom-right-radius: 8px; }
+.btn-group form + form .btn { border-left: 0; }
+</style>
 {% endblock %}
