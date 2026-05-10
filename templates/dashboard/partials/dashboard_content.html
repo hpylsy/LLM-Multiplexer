@@ -56,7 +56,7 @@
             </div>
             <div class="token-trend-frame"><canvas id="trendChart" height="130"></canvas></div>
             <div class="dashboard-model-usage">
-                <span class="dashboard-model-usage-label">模型使用量（全队）</span>
+                <span class="dashboard-model-usage-label">模型使用量</span>
                 <div class="model-chip-group">
                     {% for item in dashboard.model_rank %}
                         <span class="model-chip">{{ item.model_name }} · {{ item.total_tokens|token_unit }}</span>
