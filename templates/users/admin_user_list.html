@@ -92,20 +92,18 @@
                     </td>
                     <td>{{ monthly_usage|get_item:item.id|default:'0'|token_unit }}</td>
                     <td class="text-end">
-                        <div class="btn-group btn-group-sm">
-                            <a class="btn btn-outline-primary" href="/users/admin/{{ item.id }}/edit/" title="编辑"><i class="bi bi-pencil"></i></a>
+                        <div class="d-inline-flex gap-1">
+                            <a class="btn btn-sm btn-soft px-3" href="/users/admin/{{ item.id }}/edit/">编辑</a>
                             {% if not item.is_staff %}
                             <form method="post" action="/users/admin/{{ item.id }}/toggle/" style="display:inline;">
                                 {% csrf_token %}
-                                <button type="submit" class="btn {% if item.is_active %}btn-outline-warning{% else %}btn-outline-success{% endif %}" title="{% if item.is_active %}停用{% else %}启用{% endif %}" onclick="return confirm('确认{% if item.is_active %}停用{% else %}启用{% endif %} {{ item.username }}？')">
-                                    <i class="bi {% if item.is_active %}bi-pause-fill{% else %}bi-play-fill{% endif %}"></i>
+                                <button type="submit" class="btn btn-sm {% if item.is_active %}btn-outline-warning{% else %}btn-outline-success{% endif %} rounded-pill px-3" onclick="return confirm('确认{% if item.is_active %}停用{% else %}启用{% endif %} {{ item.username }}？')">
+                                    {% if item.is_active %}停用{% else %}启用{% endif %}
                                 </button>
                             </form>
                             <form method="post" action="/users/admin/{{ item.id }}/delete/" style="display:inline;">
                                 {% csrf_token %}
-                                <button type="submit" class="btn btn-outline-danger" title="删除" onclick="return confirm('确认删除用户 {{ item.username }}？此操作不可撤销！')">
-                                    <i class="bi bi-trash"></i>
-                                </button>
+                                <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-3" onclick="return confirm('确认删除用户 {{ item.username }}？此操作不可撤销！')">删除</button>
                             </form>
                             {% endif %}
                         </div>
@@ -154,9 +152,5 @@ function updateBatchBar() {
 }
 </script>
 <style>
-.btn-group .btn { border-radius: 0; }
-.btn-group .btn:first-child { border-top-left-radius: 8px; border-bottom-left-radius: 8px; }
-.btn-group .btn:last-child { border-top-right-radius: 8px; border-bottom-right-radius: 8px; }
-.btn-group form + form .btn { border-left: 0; }
 </style>
 {% endblock %}
