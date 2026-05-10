@@ -165,18 +165,26 @@
 {% block extra_js %}
 <script>
 function copyToClipboard(text, el) {
-    navigator.clipboard.writeText(text).then(function() {
-        el.style.borderColor = 'rgba(34,197,94,0.6)';
-        var code = el.querySelector('code');
-        var original = code.textContent;
-        code.textContent = '✓ 已复制';
-        code.style.color = '#16a34a';
-        setTimeout(function() {
-            code.textContent = original;
-            code.style.color = '';
-            el.style.borderColor = '';
-        }, 1200);
-    });
+    // Fallback for HTTP (navigator.clipboard requires HTTPS)
+    var textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textarea);
+
+    el.style.borderColor = 'rgba(34,197,94,0.6)';
+    var code = el.querySelector('code');
+    var original = code.textContent;
+    code.textContent = '✓ 已复制';
+    code.style.color = '#16a34a';
+    setTimeout(function() {
+        code.textContent = original;
+        code.style.color = '';
+        el.style.borderColor = '';
+    }, 1200);
 }
 </script>
 {% endblock %}
