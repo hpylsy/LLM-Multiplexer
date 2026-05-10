@@ -8,6 +8,7 @@ from api_keys.models import APIKey
 from core.utils import admin_required
 from quota.models import UserQuotaSnapshot
 from django.db.models import Sum
+from users.models import Profile
 
 from users.forms import AdminProfileQuotaForm, AdminUserBoundKeyForm, AdminUserKeyOnlyForm, AdminUserPasswordForm, AdminUserWithCliproxyKeyForm, ProfileForm
 
@@ -31,6 +32,29 @@ def profile_detail(request):
 @admin_required
 def admin_user_list(request):
     users = User.objects.select_related("profile").order_by("username")
+
+    # Filters
+    group_filter = request.GET.get("group", "all")
+    grade_filter = request.GET.get("grade", "all")
+    status_filter = request.GET.get("status", "all")
+
+    if group_filter != "all":
+        users = users.filter(profile__lab_group=group_filter)
+    if grade_filter != "all":
+        users = users.filter(profile__grade=grade_filter)
+    if status_filter == "active":
+        users = users.filter(is_active=True)
+    elif status_filter == "disabled":
+        users = users.filter(is_active=False)
+
+    # Get filter options
+    all_groups = sorted(set(
+        Profile.objects.exclude(lab_group="").values_list("lab_group", flat=True).distinct()
+    ))
+    all_grades = sorted(set(
+        Profile.objects.exclude(grade="").values_list("grade", flat=True).distinct()
+    ))
+
     monthly_usage = {
         row["usage_logs__user"]: row["total_tokens"]
         for row in User.objects.filter(usage_logs__isnull=False)
@@ -38,7 +62,15 @@ def admin_user_list(request):
         .annotate(total_tokens=Sum("usage_logs__total_tokens"))
         .values("usage_logs__user", "total_tokens")
     }
-    return render(request, "users/admin_user_list.html", {"users": users, "monthly_usage": monthly_usage})
+    return render(request, "users/admin_user_list.html", {
+        "users": users,
+        "monthly_usage": monthly_usage,
+        "group_filter": group_filter,
+        "grade_filter": grade_filter,
+        "status_filter": status_filter,
+        "all_groups": all_groups,
+        "all_grades": all_grades,
+    })
 
 
 @admin_required
@@ -114,3 +146,15 @@ def admin_user_create(request):
     else:
         form = AdminUserWithCliproxyKeyForm()
     return render(request, "users/admin_user_create.html", {"form": form})
+
+
+@admin_required
+def admin_user_toggle(request, user_id):
+    """Toggle user active/disabled status."""
+    target_user = get_object_or_404(User, pk=user_id)
+    if request.method == "POST":
+        target_user.is_active = not target_user.is_active
+        target_user.save(update_fields=["is_active"])
+        status_text = "启用" if target_user.is_active else "停用"
+        messages.success(request, f"用户 {target_user.username} 已{status_text}")
+    return redirect("admin-user-list")
