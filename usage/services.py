@@ -349,8 +349,13 @@ def aggregate_dashboard(queryset, trend_bucket="day"):
     for row in trend_qs:
         if row["bucket"] is None:
             continue
-        local_time = timezone.localtime(row["bucket"])
-        label = local_time.strftime("%H:%M") if trend_bucket == "hour" else local_time.date().isoformat()
+        bucket = row["bucket"]
+        if trend_bucket == "hour":
+            local_time = timezone.localtime(bucket)
+            label = local_time.strftime("%H:%M")
+        else:
+            # TruncDate returns a date object, not datetime
+            label = bucket.isoformat() if hasattr(bucket, 'isoformat') else str(bucket)
         trend_map[label]["tokens"] += row["tokens"] or 0
         trend_map[label]["prompt_tokens"] += row["prompt_tokens"] or 0
         trend_map[label]["completion_tokens"] += row["completion_tokens"] or 0
