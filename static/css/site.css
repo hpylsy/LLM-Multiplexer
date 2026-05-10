@@ -938,3 +938,22 @@ select:focus-visible {
     color: #fff;
     border-color: rgba(255, 255, 255, 0.4);
 }
+
+/* ===== Dashboard filter selects ===== */
+.dashboard-filter-select {
+    width: 110px;
+    border-radius: 999px !important;
+    background: rgba(79, 70, 229, 0.06);
+    border-color: rgba(79, 70, 229, 0.15) !important;
+    text-align: center;
+    text-align-last: center;
+    -moz-text-align-last: center;
+    padding-left: 0.5rem;
+    padding-right: 1.5rem;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%234f46e5' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.5rem center;
+    background-size: 12px;
+}

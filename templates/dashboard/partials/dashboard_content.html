@@ -18,13 +18,13 @@
             <button class="btn btn-sm btn-soft" onclick="applyCustomRange()">确定</button>
         </div>
         <div class="d-flex align-items-center gap-2">
-            <select class="form-select form-select-sm" style="width:100px;border-radius:999px;background:rgba(79,70,229,0.06);border-color:rgba(79,70,229,0.15);text-align:center;" onchange="document.body.classList.add('dashboard-navigating'); location.href='?range={{ range_name }}&group=' + this.value + '&grade={{ grade_name|default:'all' }}' + getCustomParams()">
+            <select class="form-select form-select-sm dashboard-filter-select" onchange="document.body.classList.add('dashboard-navigating'); location.href='?range={{ range_name }}&group=' + this.value + '&grade={{ grade_name|default:'all' }}' + getCustomParams()">
                 <option value="all" {% if group_name == 'all' %}selected{% endif %}>全队</option>
                 {% for option in group_options %}
                     <option value="{{ option }}" {% if option == group_name %}selected{% endif %}>{{ option }}</option>
                 {% endfor %}
             </select>
-            <select class="form-select form-select-sm" style="width:120px;border-radius:999px;background:rgba(79,70,229,0.06);border-color:rgba(79,70,229,0.15);text-align:center;" onchange="document.body.classList.add('dashboard-navigating'); location.href='?range={{ range_name }}&group={{ group_name }}&grade=' + this.value + getCustomParams()">
+            <select class="form-select form-select-sm dashboard-filter-select" onchange="document.body.classList.add('dashboard-navigating'); location.href='?range={{ range_name }}&group={{ group_name }}&grade=' + this.value + getCustomParams()">
                 <option value="all" {% if grade_name == 'all' %}selected{% endif %}>全部年级</option>
                 {% for option in grade_options %}
                     <option value="{{ option }}" {% if option == grade_name %}selected{% endif %}>{{ option }}级</option>
