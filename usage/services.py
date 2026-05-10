@@ -402,9 +402,11 @@ def aggregate_dashboard(queryset, trend_bucket="day"):
     # Parse cached/thinking tokens from raw_payload (only fetch needed fields)
     for row in queryset.only("request_time", "raw_payload").iterator(chunk_size=500):
         label = _trend_label(row.request_time, trend_bucket)
-        cached_tokens = _payload_int(row.raw_payload, ("tokens", "cached_tokens"), ("cached_tokens",), ("usage", "cached_tokens"))
+        cached_tokens = _payload_int(row.raw_payload, ("raw_payload", "tokens", "cached_tokens"), ("tokens", "cached_tokens"), ("cached_tokens",), ("usage", "cached_tokens"))
         thinking_tokens = _payload_int(
             row.raw_payload,
+            ("raw_payload", "tokens", "reasoning_tokens"),
+            ("raw_payload", "tokens", "thinking_tokens"),
             ("tokens", "thinking_tokens"),
             ("tokens", "reasoning_tokens"),
             ("thinking_tokens",),
