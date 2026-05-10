@@ -1,48 +1,93 @@
 {% extends 'base.html' %}
 
-{% block title %}导入 Usage 日志{% endblock %}
+{% block title %}同步与导入{% endblock %}
 
 {% block content %}
 <section class="page-hero mb-4">
     <span class="eyebrow-badge mb-2 d-inline-flex">Sync</span>
     <h3 class="mb-1">同步与导入 Usage</h3>
-    <p class="text-muted mb-0">默认推荐直接从 CLIProxy 自动同步；手动上传 CSV / JSONL 仅作为补充方式。</p>
+    <p class="text-muted mb-0">从 CLIProxy 一键同步使用记录，或手动上传 CSV / JSONL 文件补充导入。</p>
 </section>
 
-<div class="row g-4">
-    <div class="col-lg-5">
+<div class="row g-4 mb-4">
+    <div class="col-lg-6">
         <div class="card panel-card h-100"><div class="card-body">
-            <h3>自动同步（推荐）</h3>
-            <p class="text-muted">如果 CLIProxy 管理接口已启用统计，你通常不需要手动上传日志，只需要点击下面按钮即可。</p>
-            <form method="post" enctype="multipart/form-data">
+            <h5 class="section-title">🔄 自动同步</h5>
+            <p class="text-muted mb-3">从 CLIProxy 管理接口拉取最新使用记录，自动匹配绑定账号。</p>
+            <form method="post" enctype="multipart/form-data" id="syncForm">
                 {% csrf_token %}
-                <button class="btn btn-primary rounded-pill px-4" type="submit" name="sync_cliproxy" value="1">从 CLIProxy 同步</button>
-                <p class="text-muted small mt-3 mb-0">当前支持一键读取 CLIProxy 的 usage 明细并自动归属到绑定账号。</p>
+                <button class="btn btn-primary rounded-pill px-4 d-inline-flex align-items-center gap-2" type="submit" name="sync_cliproxy" value="1" id="syncBtn" onclick="startSync(this)">
+                    <i class="bi bi-arrow-repeat" id="syncIcon"></i>
+                    <span id="syncText">从 CLIProxy 同步</span>
+                </button>
             </form>
+            <div id="syncResult" class="mt-3" style="display:none;"></div>
         </div></div>
     </div>
-    <div class="col-lg-7">
-        <div class="card panel-card h-100 mb-4"><div class="card-body">
-            <h4>手动导入（备用）</h4>
+    <div class="col-lg-6">
+        <div class="card panel-card h-100"><div class="card-body">
+            <h5 class="section-title">📁 手动导入</h5>
+            <p class="text-muted mb-3">上传 CSV 或 JSONL 格式的使用记录文件。</p>
             <form method="post" enctype="multipart/form-data">
                 {% csrf_token %}
-                {{ form.as_p }}
-                <button class="btn btn-soft rounded-pill px-4" type="submit">上传 CSV / JSONL</button>
+                <div class="mb-3">
+                    {{ form.source_file }}
+                </div>
+                <button class="btn btn-soft rounded-pill px-4" type="submit">
+                    <i class="bi bi-upload me-1"></i>上传文件
+                </button>
             </form>
-        </div></div>
-        <div class="card panel-card h-100"><div class="card-body">
-            <h4>最近导入任务</h4>
-            <div class="table-responsive soft-table-wrap"><table class="table table-sm soft-table align-middle">
-                <thead><tr><th>时间</th><th>来源</th><th>成功</th><th>跳过</th><th>失败</th></tr></thead>
-                <tbody>
-                {% for job in jobs %}
-                    <tr><td>{{ job.created_at|date:'Y-m-d H:i' }}</td><td>{{ job.source_name }}</td><td>{{ job.imported_count }}</td><td>{{ job.skipped_count }}</td><td>{{ job.failed_count }}</td></tr>
-                {% empty %}
-                    <tr><td colspan="5" class="text-center text-muted">暂无导入记录</td></tr>
-                {% endfor %}
-                </tbody>
-            </table></div>
         </div></div>
     </div>
 </div>
+
+<div class="card panel-card"><div class="card-body">
+    <h5 class="section-title">📋 最近同步/导入记录</h5>
+    <div class="table-responsive soft-table-wrap scroll-table" style="max-height: 360px;">
+        <table class="table table-sm soft-table align-middle mb-0">
+            <thead><tr><th>时间</th><th>来源</th><th>类型</th><th class="text-success">成功</th><th class="text-warning">跳过</th><th class="text-danger">失败</th></tr></thead>
+            <tbody>
+            {% for job in jobs %}
+                <tr>
+                    <td>{{ job.created_at|date:'m-d H:i' }}</td>
+                    <td>{{ job.source_name }}</td>
+                    <td><span class="badge text-bg-{% if job.source_type == 'api' %}primary{% elif job.source_type == 'upload' %}secondary{% else %}info{% endif %}">{{ job.get_source_type_display }}</span></td>
+                    <td class="text-success fw-semibold">{{ job.imported_count }}</td>
+                    <td class="text-warning">{{ job.skipped_count }}</td>
+                    <td class="text-danger">{{ job.failed_count }}</td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="6" class="text-center text-muted py-4">暂无导入记录</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function startSync(btn) {
+    btn.disabled = true;
+    document.getElementById('syncIcon').classList.add('spin-animation');
+    document.getElementById('syncText').textContent = '同步中...';
+    document.getElementById('syncResult').style.display = 'none';
+}
+
+// Show result after page reload (Django messages)
+document.addEventListener('DOMContentLoaded', function() {
+    var alerts = document.querySelectorAll('.soft-alert');
+    if (alerts.length > 0) {
+        var resultDiv = document.getElementById('syncResult');
+        if (resultDiv) {
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = '<div class="alert alert-success border-0 py-2 px-3 mb-0 rounded-pill d-inline-flex align-items-center gap-2"><i class="bi bi-check-circle"></i> 同步完成，详情见下方记录表</div>';
+        }
+    }
+});
+</script>
+<style>
+.spin-animation { animation: spin 1s linear infinite; }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+</style>
 {% endblock %}
