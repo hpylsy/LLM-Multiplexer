@@ -46,7 +46,7 @@ def admin_user_edit(request, user_id):
     target_user = get_object_or_404(User.objects.select_related("profile"), pk=user_id)
     bound_key = target_user.api_keys.order_by("-created_at").first()
     if request.method == "POST":
-        form = AdminProfileQuotaForm(request.POST, instance=target_user.profile, prefix="profile")
+        form = AdminProfileQuotaForm(request.POST, instance=target_user.profile, prefix="profile", user_instance=target_user)
         password_form = AdminUserPasswordForm(request.POST, prefix="password")
         key_form = AdminUserBoundKeyForm(request.POST, instance=bound_key, prefix="key") if bound_key else AdminUserKeyOnlyForm(request.POST, prefix="key")
         if "save_profile" in request.POST and form.is_valid():
@@ -72,7 +72,7 @@ def admin_user_edit(request, user_id):
             messages.success(request, "用户账号已注销")
             return redirect("admin-user-list")
     else:
-        form = AdminProfileQuotaForm(instance=target_user.profile, prefix="profile")
+        form = AdminProfileQuotaForm(instance=target_user.profile, prefix="profile", user_instance=target_user)
         password_form = AdminUserPasswordForm(prefix="password")
         key_form = AdminUserBoundKeyForm(instance=bound_key, prefix="key") if bound_key else None
     return render(request, "users/admin_user_edit.html", {"target_user": target_user, "form": form, "password_form": password_form, "key_form": key_form, "bound_key": bound_key})

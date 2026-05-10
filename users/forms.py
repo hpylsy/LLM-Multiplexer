@@ -12,9 +12,33 @@ class ProfileForm(forms.ModelForm):
 
 
 class AdminProfileQuotaForm(forms.ModelForm):
+    username = forms.CharField(label="用户名", max_length=150)
+
     class Meta:
         model = Profile
         fields = ["display_name", "role", "lab_group", "grade", "member_type", "is_dashboard_visible"]
+
+    def __init__(self, *args, **kwargs):
+        self.user_instance = kwargs.pop("user_instance", None)
+        super().__init__(*args, **kwargs)
+        if self.user_instance:
+            self.fields["username"].initial = self.user_instance.username
+
+    def clean_username(self):
+        username = self.cleaned_data["username"].strip()
+        if self.user_instance and username != self.user_instance.username:
+            if User.objects.filter(username=username).exists():
+                raise forms.ValidationError("该用户名已存在")
+        return username
+
+    def save(self, commit=True):
+        profile = super().save(commit=commit)
+        if self.user_instance:
+            new_username = self.cleaned_data["username"]
+            if new_username != self.user_instance.username:
+                self.user_instance.username = new_username
+                self.user_instance.save(update_fields=["username"])
+        return profile
 
 
 class AdminUserWithCliproxyKeyForm(forms.Form):
