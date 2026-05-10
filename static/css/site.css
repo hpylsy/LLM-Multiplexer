@@ -925,3 +925,16 @@ select:focus-visible {
     background: #fff;
     border-color: var(--brand) !important;
 }
+
+/* ===== Navbar logout button (softer than white) ===== */
+.btn-nav-logout {
+    background: rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.btn-nav-logout:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.4);
+}
