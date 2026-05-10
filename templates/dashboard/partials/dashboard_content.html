@@ -1,36 +1,37 @@
 {% load ui_tags %}
 <section class="page-hero mb-4">
-    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
-        <div>
-            <span class="eyebrow-badge mb-2 d-inline-flex">📊 Dashboard</span>
-            <h3 class="mb-1">{{ page_title }}</h3>
-            <p class="text-muted mb-0">按时间范围查看请求量、Token 消耗、错误率与模型分布 ✨</p>
-        </div>
+    <div class="mb-3">
+        <span class="eyebrow-badge mb-2 d-inline-flex">📊 Dashboard</span>
+        <h3 class="mb-1">{{ page_title }}</h3>
+        <p class="text-muted mb-0">按时间范围查看请求量、Token 消耗、错误率与模型分布</p>
+    </div>
+    <div class="d-flex flex-wrap align-items-center gap-2">
         <div class="toolbar-chips">
             <a class="btn btn-sm btn-soft {% if range_name == 'today' %}active{% endif %}" href="?range=today&group={{ group_name|default:'all' }}&grade={{ grade_name|default:'all' }}" onclick="document.body.classList.add('dashboard-navigating')">今日</a>
             <a class="btn btn-sm btn-soft {% if range_name == 'last_7_days' %}active{% endif %}" href="?range=last_7_days&group={{ group_name|default:'all' }}&grade={{ grade_name|default:'all' }}" onclick="document.body.classList.add('dashboard-navigating')">近 7 天</a>
             <a class="btn btn-sm btn-soft {% if range_name == 'this_month' %}active{% endif %}" href="?range=this_month&group={{ group_name|default:'all' }}&grade={{ grade_name|default:'all' }}" onclick="document.body.classList.add('dashboard-navigating')">本月</a>
             <a class="btn btn-sm btn-soft {% if range_name == 'last_30_days' %}active{% endif %}" href="?range=last_30_days&group={{ group_name|default:'all' }}&grade={{ grade_name|default:'all' }}" onclick="document.body.classList.add('dashboard-navigating')">近 30 天</a>
             <a class="btn btn-sm btn-soft {% if range_name == 'all' %}active{% endif %}" href="?range=all&group={{ group_name|default:'all' }}&grade={{ grade_name|default:'all' }}" onclick="document.body.classList.add('dashboard-navigating')">全部</a>
-            <span class="d-inline-flex align-items-center gap-1">
-                <input type="date" class="form-control form-control-sm date-picker-custom" id="customDateStart" value="{{ custom_start|default:'' }}">
-                <span class="text-muted">~</span>
-                <input type="date" class="form-control form-control-sm date-picker-custom" id="customDateEnd" value="{{ custom_end|default:'' }}">
-                <button class="btn btn-sm btn-soft" onclick="applyCustomRange()" title="应用">确定</button>
-            </span>
-            <select class="form-select form-select-sm group-select" onchange="document.body.classList.add('dashboard-navigating'); location.href='?range={{ range_name }}&group=' + this.value + '&grade={{ grade_name|default:'all' }}' + getCustomParams()">
-                <option value="all" {% if group_name == 'all' %}selected{% endif %}>全队</option>
-                {% for option in group_options %}
-                    <option value="{{ option }}" {% if option == group_name %}selected{% endif %}>{{ option }}</option>
-                {% endfor %}
-            </select>
-            <select class="form-select form-select-sm group-select" onchange="document.body.classList.add('dashboard-navigating'); location.href='?range={{ range_name }}&group={{ group_name }}&grade=' + this.value + getCustomParams()">
-                <option value="all" {% if grade_name == 'all' %}selected{% endif %}>全部年级</option>
-                {% for option in grade_options %}
-                    <option value="{{ option }}" {% if option == grade_name %}selected{% endif %}>{{ option }}级</option>
-                {% endfor %}
-            </select>
         </div>
+        <span class="d-inline-flex align-items-center gap-1">
+            <input type="date" class="form-control form-control-sm date-picker-custom" id="customDateStart" value="{{ custom_start|default:'' }}">
+            <span class="text-muted">~</span>
+            <input type="date" class="form-control form-control-sm date-picker-custom" id="customDateEnd" value="{{ custom_end|default:'' }}">
+            <button class="btn btn-sm btn-soft" onclick="applyCustomRange()">确定</button>
+        </span>
+        <span class="d-none d-md-inline" style="width:1px; height:20px; background:rgba(148,163,184,0.3);"></span>
+        <select class="form-select form-select-sm group-select" onchange="document.body.classList.add('dashboard-navigating'); location.href='?range={{ range_name }}&group=' + this.value + '&grade={{ grade_name|default:'all' }}' + getCustomParams()">
+            <option value="all" {% if group_name == 'all' %}selected{% endif %}>全队</option>
+            {% for option in group_options %}
+                <option value="{{ option }}" {% if option == group_name %}selected{% endif %}>{{ option }}</option>
+            {% endfor %}
+        </select>
+        <select class="form-select form-select-sm group-select" onchange="document.body.classList.add('dashboard-navigating'); location.href='?range={{ range_name }}&group={{ group_name }}&grade=' + this.value + getCustomParams()">
+            <option value="all" {% if grade_name == 'all' %}selected{% endif %}>全部年级</option>
+            {% for option in grade_options %}
+                <option value="{{ option }}" {% if option == grade_name %}selected{% endif %}>{{ option }}级</option>
+            {% endfor %}
+        </select>
     </div>
 </section>
 
