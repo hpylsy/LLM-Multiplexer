@@ -58,9 +58,9 @@
                     {% for item in pricings %}
                         <tr>
                             <td class="fw-semibold">{{ item.model_name }}</td>
-                            <td class="text-end">{{ item.prompt_price_per_million }}</td>
-                            <td class="text-end">{{ item.completion_price_per_million }}</td>
-                            <td class="text-end">{{ item.cached_price_per_million }}</td>
+                            <td class="text-end">${{ item.prompt_price_per_million|floatformat:2 }}</td>
+                            <td class="text-end">${{ item.completion_price_per_million|floatformat:2 }}</td>
+                            <td class="text-end">${{ item.cached_price_per_million|floatformat:3 }}</td>
                         </tr>
                     {% empty %}
                         <tr><td colspan="4" class="text-center text-muted py-4">暂无模型价格配置</td></tr>
