@@ -128,4 +128,25 @@ new Chart(document.getElementById('userBarChart'), {
         }
     }
 });
+
+function getCustomParams() {
+    var s = document.getElementById('customDateStart');
+    var e = document.getElementById('customDateEnd');
+    if (s && e && s.value && e.value) {
+        return '&start=' + s.value + '&end=' + e.value;
+    }
+    return '';
+}
+
+function applyCustomRange() {
+    var s = document.getElementById('customDateStart').value;
+    var e = document.getElementById('customDateEnd').value;
+    if (!s || !e) { alert('请选择起止日期'); return; }
+    document.body.classList.add('dashboard-navigating');
+    var params = new URLSearchParams(window.location.search);
+    params.set('range', 'custom');
+    params.set('start', s);
+    params.set('end', e);
+    location.href = '?' + params.toString();
+}
 </script>

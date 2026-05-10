@@ -23,12 +23,18 @@ def my_usage_logs(request):
         chart_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     elif range_name == "last_7_days":
         chart_start = now - timedelta(days=7)
+    elif range_name == "last_30_days":
+        chart_start = now - timedelta(days=30)
+    elif range_name == "all":
+        chart_start = None
     else:
         range_name = "today"
         chart_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
 
     logs = UsageLog.objects.filter(user=request.user).select_related("api_key")[:100]
-    chart_logs = UsageLog.objects.filter(user=request.user, request_time__gte=chart_start)
+    chart_logs = UsageLog.objects.filter(user=request.user)
+    if chart_start:
+        chart_logs = chart_logs.filter(request_time__gte=chart_start)
     daily_usage_map = defaultdict(int)
     if range_name == "today":
         for hour in range(24):

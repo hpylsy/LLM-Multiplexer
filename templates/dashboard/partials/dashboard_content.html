@@ -10,13 +10,21 @@
             <a class="btn btn-sm btn-soft {% if range_name == 'today' %}active{% endif %}" href="?range=today&group={{ group_name|default:'all' }}&grade={{ grade_name|default:'all' }}" onclick="document.body.classList.add('dashboard-navigating')">今日</a>
             <a class="btn btn-sm btn-soft {% if range_name == 'last_7_days' %}active{% endif %}" href="?range=last_7_days&group={{ group_name|default:'all' }}&grade={{ grade_name|default:'all' }}" onclick="document.body.classList.add('dashboard-navigating')">近 7 天</a>
             <a class="btn btn-sm btn-soft {% if range_name == 'this_month' %}active{% endif %}" href="?range=this_month&group={{ group_name|default:'all' }}&grade={{ grade_name|default:'all' }}" onclick="document.body.classList.add('dashboard-navigating')">本月</a>
-            <select class="form-select form-select-sm group-select" onchange="document.body.classList.add('dashboard-navigating'); location.href='?range={{ range_name }}&group=' + this.value + '&grade={{ grade_name|default:'all' }}'">
+            <a class="btn btn-sm btn-soft {% if range_name == 'last_30_days' %}active{% endif %}" href="?range=last_30_days&group={{ group_name|default:'all' }}&grade={{ grade_name|default:'all' }}" onclick="document.body.classList.add('dashboard-navigating')">近 30 天</a>
+            <a class="btn btn-sm btn-soft {% if range_name == 'all' %}active{% endif %}" href="?range=all&group={{ group_name|default:'all' }}&grade={{ grade_name|default:'all' }}" onclick="document.body.classList.add('dashboard-navigating')">全部</a>
+            <span class="d-inline-flex align-items-center gap-1">
+                <input type="date" class="form-control form-control-sm" id="customDateStart" value="{{ custom_start|default:'' }}" style="width:130px; border-radius:999px; font-size:0.82rem;">
+                <span class="text-muted">~</span>
+                <input type="date" class="form-control form-control-sm" id="customDateEnd" value="{{ custom_end|default:'' }}" style="width:130px; border-radius:999px; font-size:0.82rem;">
+                <button class="btn btn-sm btn-soft" onclick="applyCustomRange()" title="应用"><i class="bi bi-check-lg"></i></button>
+            </span>
+            <select class="form-select form-select-sm group-select" onchange="document.body.classList.add('dashboard-navigating'); location.href='?range={{ range_name }}&group=' + this.value + '&grade={{ grade_name|default:'all' }}' + getCustomParams()">
                 <option value="all" {% if group_name == 'all' %}selected{% endif %}>全队</option>
                 {% for option in group_options %}
                     <option value="{{ option }}" {% if option == group_name %}selected{% endif %}>{{ option }}</option>
                 {% endfor %}
             </select>
-            <select class="form-select form-select-sm group-select" onchange="document.body.classList.add('dashboard-navigating'); location.href='?range={{ range_name }}&group={{ group_name }}&grade=' + this.value">
+            <select class="form-select form-select-sm group-select" onchange="document.body.classList.add('dashboard-navigating'); location.href='?range={{ range_name }}&group={{ group_name }}&grade=' + this.value + getCustomParams()">
                 <option value="all" {% if grade_name == 'all' %}selected{% endif %}>全部年级</option>
                 {% for option in grade_options %}
                     <option value="{{ option }}" {% if option == grade_name %}selected{% endif %}>{{ option }}级</option>
