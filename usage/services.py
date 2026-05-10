@@ -117,6 +117,8 @@ def import_usage_records(records, source_type, source_name):
     imported = skipped = failed = 0
     errors = []
 
+    # Pre-normalize all records and collect request_ids for batch lookup
+    normalized = []
     for index, raw in enumerate(records, start=1):
         try:
             data = normalize_usage_record(raw)
@@ -124,18 +126,22 @@ def import_usage_records(records, source_type, source_name):
                 failed += 1
                 errors.append(f"第 {index} 行缺少 request_id")
                 continue
-            existing_log = UsageLog.objects.filter(request_id=data["request_id"]).first()
-            if existing_log:
-                user, api_key = resolve_related_objects(data)
-                update_fields = []
-                if not existing_log.user_id and user:
-                    existing_log.user = user
-                    update_fields.append("user")
-                if not existing_log.api_key_id and api_key:
-                    existing_log.api_key = api_key
-                    update_fields.append("api_key")
-                if update_fields:
-                    existing_log.save(update_fields=update_fields)
+            normalized.append((index, data))
+        except Exception as exc:
+            failed += 1
+            errors.append(f"第 {index} 行解析失败: {exc}")
+
+    # Batch check which request_ids already exist
+    all_request_ids = [data["request_id"] for _, data in normalized]
+    existing_ids = set(
+        UsageLog.objects.filter(request_id__in=all_request_ids)
+        .values_list("request_id", flat=True)
+    )
+
+    # Process records
+    for index, data in normalized:
+        try:
+            if data["request_id"] in existing_ids:
                 skipped += 1
                 continue
             user, api_key = resolve_related_objects(data)
@@ -143,6 +149,7 @@ def import_usage_records(records, source_type, source_name):
             imported += 1
         except Exception as exc:
             failed += 1
+            errors.append(f"第 {index} 行导入失败: {exc}")
             errors.append(f"第 {index} 行导入失败: {exc}")
 
     job.imported_count = imported
