@@ -12,12 +12,34 @@
                 <div class="text-center mb-4">
                     <div class="feature-icon mx-auto mb-3 bg-primary-subtle text-primary"><i class="bi bi-box-arrow-in-right"></i></div>
                     <h3 class="mb-2">登录系统</h3>
-                    <p class="text-muted mb-0">进入实验室大模型门户后台</p>
+                    <p class="text-muted mb-0">PIONEER战队AI中转站</p>
                 </div>
+                {% if form.errors %}
+                <div class="alert alert-danger alert-dismissible fade show soft-alert border-0 py-2 px-3 mb-3" role="alert">
+                    <small>用户名或密码错误，请重试</small>
+                    <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="alert" aria-label="关闭" style="padding: 0.65rem;"></button>
+                </div>
+                {% endif %}
                 <form method="post">
                     {% csrf_token %}
-                    {{ form.as_p }}
-                    <button class="btn btn-primary w-100 rounded-pill py-2" type="submit">登录</button>
+                    <div class="mb-3">
+                        <label for="id_username" class="form-label fw-semibold">用户名</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-transparent border-end-0"><i class="bi bi-person text-muted"></i></span>
+                            <input type="text" name="username" id="id_username" class="form-control border-start-0 ps-0" placeholder="请输入用户名" autofocus required>
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label for="id_password" class="form-label fw-semibold">密码</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-transparent border-end-0"><i class="bi bi-lock text-muted"></i></span>
+                            <input type="password" name="password" id="id_password" class="form-control border-start-0 ps-0" placeholder="请输入密码" required>
+                        </div>
+                    </div>
+                    {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+                    <button class="btn btn-primary w-100 rounded-pill py-2 fw-semibold" type="submit">
+                        <i class="bi bi-arrow-right-circle me-1"></i>登录
+                    </button>
                 </form>
             </div>
         </div>

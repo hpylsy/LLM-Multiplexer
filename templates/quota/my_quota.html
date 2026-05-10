@@ -15,42 +15,80 @@
 <div class="row g-4 align-items-stretch">
     <div class="col-lg-6">
         <div class="card panel-card h-100 quota-card"><div class="card-body">
-            <h3>本月额度</h3>
+            <h4 class="section-title">📊 本月额度</h4>
             {% if snapshot %}
-                <p>Token：<strong>{{ snapshot.token_used|token_unit }}</strong> / {{ snapshot.token_limit|token_unit }}</p>
-                <p>Cost：<strong>{{ snapshot.cost_used }}</strong> / {{ snapshot.cost_limit }}</p>
+                <div class="row g-3 mb-3">
+                    <div class="col-6">
+                        <div class="personal-summary-item">
+                            <span>Token 已用</span>
+                            <strong>{{ snapshot.token_used|token_unit }}</strong>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="personal-summary-item">
+                            <span>Token 上限</span>
+                            <strong>{{ snapshot.token_limit|token_unit }}</strong>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="personal-summary-item">
+                            <span>费用已用</span>
+                            <strong>${{ snapshot.cost_used }}</strong>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="personal-summary-item">
+                            <span>费用上限</span>
+                            <strong>${{ snapshot.cost_limit }}</strong>
+                        </div>
+                    </div>
+                </div>
             {% else %}
                 <p class="text-muted">本月暂无额度数据</p>
             {% endif %}
             {% if bound_keys %}
             <hr>
-            <h5 class="mb-3">调用信息</h5>
-            <div class="api-info-box mb-3">
+            <h5 class="section-title">🔑 调用信息</h5>
+            <div class="api-info-box mb-3" onclick="copyToClipboard('{{ cliproxy_base_url }}', this)" title="点击复制">
                 <div class="api-info-row">
                     <span class="api-info-label">Base URL</span>
                     <code>{{ cliproxy_base_url }}</code>
                 </div>
             </div>
             {% for key in bound_keys %}
-                <div class="api-info-box mb-2">
+                <div class="api-info-box mb-2" onclick="copyToClipboard('{{ key.token_plaintext|default:key.token_masked }}', this)" title="点击复制">
                     <div class="api-info-row flex-wrap gap-2">
                         <span class="api-info-label">API 密钥</span>
                         <code>{{ key.token_plaintext|default:key.token_masked }}</code>
                     </div>
                 </div>
             {% endfor %}
+            <p class="text-muted mt-2 mb-0" style="font-size: 0.82rem;"><i class="bi bi-info-circle me-1"></i>点击上方信息框可快速复制</p>
             {% endif %}
         </div></div>
     </div>
     <div class="col-lg-6">
         <div class="card panel-card h-100 quota-card quota-tips-card"><div class="card-body">
-            <h4>使用提醒</h4>
+            <h4 class="section-title">⚠️ 使用提醒</h4>
             <ul class="rules-list compact-rules mb-0">
                 <li>复制 API 密钥后仅在可信设备中使用。</li>
                 <li>若发现异常调用，请联系管理员更换密钥。</li>
                 <li>请勿公开分享调用地址与密钥。</li>
+                <li>密钥仅限本人使用，严禁外借或转交。</li>
             </ul>
         </div></div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function copyToClipboard(text, el) {
+    navigator.clipboard.writeText(text).then(function() {
+        var orig = el.style.borderColor;
+        el.style.borderColor = 'rgba(34,197,94,0.6)';
+        setTimeout(function() { el.style.borderColor = orig; }, 800);
+    });
+}
+</script>
 {% endblock %}

@@ -7,7 +7,12 @@
     --text-soft: #64748b;
     --brand: #4f46e5;
     --brand-2: #06b6d4;
+    --radius-card: 24px;
+    --radius-pill: 999px;
 }
+
+/* ===== Smooth page transitions ===== */
+@view-transition { navigation: auto; }
 
 body.site-body {
     min-height: 100vh;
@@ -18,6 +23,8 @@ body.site-body {
         url('/static/brand/background-main.jpg') center/cover fixed no-repeat,
         linear-gradient(180deg, #eef4ff 0%, #f8fbff 28%, #f4f7fb 100%);
     color: var(--text-main);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
 body.site-body.login-page {
@@ -62,6 +69,9 @@ body.site-body.usage-page {
     backdrop-filter: blur(18px);
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     box-shadow: 0 10px 30px rgba(15, 23, 42, 0.18);
+    position: sticky;
+    top: 0;
+    z-index: 1030;
 }
 
 .brand-mark {
@@ -373,6 +383,7 @@ body.site-body.usage-page {
     font-size: 1.7rem;
     font-weight: 800;
     line-height: 1.1;
+    font-variant-numeric: tabular-nums;
 }
 
 .stat-card-primary { background: linear-gradient(180deg, #ffffff, #f8faff); }
@@ -650,5 +661,251 @@ code {
 
     .site-navbar .navbar-collapse {
         padding-top: 1rem;
+    }
+}
+
+/* ===== Loading skeleton for dashboard ===== */
+.skeleton-pulse {
+    background: linear-gradient(90deg, rgba(148,163,184,0.08) 25%, rgba(148,163,184,0.16) 50%, rgba(148,163,184,0.08) 75%);
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.5s infinite;
+    border-radius: 8px;
+}
+
+@keyframes skeleton-shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* ===== Better mobile responsiveness ===== */
+@media (max-width: 575.98px) {
+    .stat-card .value {
+        font-size: 1.3rem;
+    }
+
+    .stat-card .label {
+        font-size: 0.78rem;
+    }
+
+    .stat-card .card-body {
+        padding: 0.9rem;
+    }
+
+    .page-hero {
+        padding: 1rem 1.1rem;
+    }
+
+    .page-hero h3 {
+        font-size: 1.25rem;
+    }
+
+    .toolbar-chips {
+        gap: 0.35rem;
+    }
+
+    .toolbar-chips .btn-sm {
+        padding: 0.35rem 0.65rem;
+        font-size: 0.78rem;
+    }
+
+    .group-select {
+        min-width: 100px;
+        font-size: 0.82rem;
+    }
+
+    .section-title {
+        font-size: 1rem;
+    }
+
+    .personal-summary-row {
+        grid-template-columns: 1fr;
+    }
+
+    .token-legend {
+        gap: 0.35rem;
+    }
+
+    .token-legend-item {
+        font-size: 0.76rem;
+        padding: 0.32rem 0.55rem;
+    }
+
+    .model-chip {
+        font-size: 0.78rem;
+        padding: 0.35rem 0.6rem;
+    }
+
+    .hero-panel-lg {
+        padding: 1.2rem;
+    }
+
+    .hero-panel-lg h1 {
+        font-size: 1.5rem;
+    }
+
+    .hero-description {
+        font-size: 0.92rem;
+    }
+
+    .rules-list {
+        font-size: 0.88rem;
+    }
+
+    .team-motto-content {
+        padding: 1.4rem;
+    }
+
+    .team-motto-content h3 {
+        font-size: 1.1rem;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .soft-table {
+        font-size: 0.84rem;
+    }
+
+    .soft-table th,
+    .soft-table td {
+        padding: 0.55rem 0.5rem;
+        white-space: nowrap;
+    }
+
+    .chart-card .card-body,
+    .panel-card .card-body {
+        padding: 1rem;
+    }
+}
+
+/* ===== Hover effects for cards ===== */
+.feature-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.feature-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 24px 48px rgba(15, 23, 42, 0.12);
+}
+
+.stat-card {
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.1);
+}
+
+/* ===== Better table row hover ===== */
+.soft-table tbody tr {
+    transition: background 0.15s ease;
+}
+
+.soft-table tbody tr:hover {
+    background: rgba(79, 70, 229, 0.05);
+}
+
+/* ===== Badge improvements ===== */
+.badge {
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+
+/* ===== Scrollbar styling ===== */
+.scroll-table::-webkit-scrollbar {
+    width: 6px;
+}
+
+.scroll-table::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.scroll-table::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.3);
+    border-radius: 3px;
+}
+
+.scroll-table::-webkit-scrollbar-thumb:hover {
+    background: rgba(148, 163, 184, 0.5);
+}
+
+/* ===== Focus visible for accessibility ===== */
+a:focus-visible,
+button:focus-visible,
+.btn:focus-visible,
+input:focus-visible,
+select:focus-visible {
+    outline: 2px solid var(--brand);
+    outline-offset: 2px;
+}
+
+/* ===== Empty state styling ===== */
+.text-muted.text-center {
+    padding: 2rem 1rem;
+}
+
+/* ===== API info box copy interaction ===== */
+.api-info-box {
+    cursor: default;
+    transition: border-color 0.2s ease;
+}
+
+.api-info-box:hover {
+    border-color: rgba(79, 70, 229, 0.3);
+}
+
+.api-info-box code {
+    user-select: all;
+    word-break: break-all;
+}
+
+/* ===== Login page centering ===== */
+.login-page main {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: calc(100vh - 80px);
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+}
+
+.login-page main > .row {
+    width: 100%;
+}
+
+/* ===== Navbar mobile improvements ===== */
+@media (max-width: 991.98px) {
+    .site-navbar .navbar-collapse {
+        padding: 1rem 0;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        margin-top: 0.75rem;
+    }
+
+    .nav-pill-group .nav-link {
+        padding: 0.7rem 1rem;
+    }
+
+    .user-action-group {
+        padding-top: 0.75rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+}
+
+/* ===== Print styles ===== */
+@media print {
+    .site-navbar,
+    .toolbar-chips,
+    .btn {
+        display: none !important;
+    }
+
+    .panel-card,
+    .card {
+        box-shadow: none !important;
+        border: 1px solid #ddd !important;
+    }
+
+    body.site-body {
+        background: #fff !important;
     }
 }
