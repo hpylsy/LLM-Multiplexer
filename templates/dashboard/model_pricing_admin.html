@@ -1,29 +1,74 @@
 {% extends 'base.html' %}
+{% load ui_tags %}
 
-{% block title %}模型价格设置{% endblock %}
+{% block title %}模型价格管理{% endblock %}
 
 {% block content %}
-<div class="card panel-card"><div class="card-body">
-    <h3 class="mb-3">模型价格设置</h3>
-    <form method="post" class="row g-3 mb-4">
-        {% csrf_token %}
-        <div class="col-md-3">{{ form.model_name }}</div>
-        <div class="col-md-3">{{ form.prompt_price_per_million }}</div>
-        <div class="col-md-3">{{ form.completion_price_per_million }}</div>
-        <div class="col-md-2">{{ form.cached_price_per_million }}</div>
-        <div class="col-md-1"><button class="btn btn-primary w-100" type="submit">保存</button></div>
-    </form>
-    <div class="table-responsive soft-table-wrap">
-        <table class="table soft-table align-middle">
-            <thead><tr><th>模型名称</th><th>提示价格 ($/1M)</th><th>补全价格 ($/1M)</th><th>缓存价格 ($/1M)</th></tr></thead>
-            <tbody>
-            {% for item in pricings %}
-                <tr><td>{{ item.model_name }}</td><td>{{ item.prompt_price_per_million }}</td><td>{{ item.completion_price_per_million }}</td><td>{{ item.cached_price_per_million }}</td></tr>
-            {% empty %}
-                <tr><td colspan="4" class="text-center text-muted">暂无模型价格配置</td></tr>
-            {% endfor %}
-            </tbody>
-        </table>
+<section class="page-hero mb-4">
+    <span class="eyebrow-badge mb-2 d-inline-flex">Admin</span>
+    <h3 class="mb-1">模型价格管理</h3>
+    <p class="text-muted mb-0">配置各模型的 Token 单价，用于计算使用费用。选择未定价模型可快速添加。</p>
+</section>
+
+<div class="row g-4">
+    <div class="col-lg-5">
+        <div class="card panel-card h-100"><div class="card-body">
+            <h5 class="section-title">💰 添加 / 更新定价</h5>
+            <form method="post">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">模型</label>
+                    {{ form.model_name }}
+                    {% if form.model_name.errors %}
+                        <div class="text-danger small mt-1">{{ form.model_name.errors.0 }}</div>
+                    {% endif %}
+                </div>
+                <div class="row g-3 mb-3">
+                    <div class="col-12">
+                        <label class="form-label fw-semibold">输入价格 <small class="text-muted">($/1M tokens)</small></label>
+                        {{ form.prompt_price_per_million }}
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label fw-semibold">输出价格 <small class="text-muted">($/1M tokens)</small></label>
+                        {{ form.completion_price_per_million }}
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label fw-semibold">缓存价格 <small class="text-muted">($/1M tokens)</small></label>
+                        {{ form.cached_price_per_million }}
+                    </div>
+                </div>
+                <button class="btn btn-primary rounded-pill px-4 w-100" type="submit">
+                    <i class="bi bi-check-circle me-1"></i>保存定价
+                </button>
+            </form>
+        </div></div>
     </div>
-</div></div>
+    <div class="col-lg-7">
+        <div class="card panel-card h-100"><div class="card-body">
+            <h5 class="section-title">📋 已配置价格</h5>
+            <div class="table-responsive soft-table-wrap">
+                <table class="table soft-table align-middle mb-0">
+                    <thead><tr>
+                        <th>模型</th>
+                        <th class="text-end">输入 ($/1M)</th>
+                        <th class="text-end">输出 ($/1M)</th>
+                        <th class="text-end">缓存 ($/1M)</th>
+                    </tr></thead>
+                    <tbody>
+                    {% for item in pricings %}
+                        <tr>
+                            <td class="fw-semibold">{{ item.model_name }}</td>
+                            <td class="text-end">{{ item.prompt_price_per_million }}</td>
+                            <td class="text-end">{{ item.completion_price_per_million }}</td>
+                            <td class="text-end">{{ item.cached_price_per_million }}</td>
+                        </tr>
+                    {% empty %}
+                        <tr><td colspan="4" class="text-center text-muted py-4">暂无模型价格配置</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div></div>
+    </div>
+</div>
 {% endblock %}
