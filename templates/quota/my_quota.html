@@ -7,15 +7,76 @@
 
 {% block content %}
 <section class="page-hero mb-4">
-    <span class="eyebrow-badge mb-2 d-inline-flex">Quota</span>
-    <h3 class="mb-1">我的额度</h3>
-    <p class="text-muted mb-0">查看本月额度、API 密钥与调用地址。</p>
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+        <div>
+            <span class="eyebrow-badge mb-2 d-inline-flex">Quota</span>
+            <h3 class="mb-1">我的额度</h3>
+            <p class="text-muted mb-0">查看使用统计、API 密钥与调用地址。</p>
+        </div>
+        <div class="toolbar-chips">
+            <a class="btn btn-sm btn-soft {% if range_name == 'today' %}active{% endif %}" href="?range=today">今日</a>
+            <a class="btn btn-sm btn-soft {% if range_name == 'last_7_days' %}active{% endif %}" href="?range=last_7_days">近 7 天</a>
+            <a class="btn btn-sm btn-soft {% if range_name == 'this_month' %}active{% endif %}" href="?range=this_month">本月</a>
+            <a class="btn btn-sm btn-soft {% if range_name == 'last_30_days' %}active{% endif %}" href="?range=last_30_days">近 30 天</a>
+            <a class="btn btn-sm btn-soft {% if range_name == 'all' %}active{% endif %}" href="?range=all">全部</a>
+        </div>
+    </div>
 </section>
 
-<div class="row g-4 align-items-stretch">
-    <div class="col-lg-6">
+<div class="row g-3 mb-4">
+    <div class="col-md-3 col-6">
+        <div class="card panel-card stat-card stat-card-primary"><div class="card-body">
+            <div class="label">🚀 请求数</div>
+            <div class="value">{{ usage_stats.total_requests|default:'0' }}</div>
+        </div></div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="card panel-card stat-card stat-card-blue"><div class="card-body">
+            <div class="label">🧮 Token 消耗</div>
+            <div class="value">{{ usage_stats.total_tokens|token_unit }}</div>
+        </div></div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="card panel-card stat-card stat-card-violet"><div class="card-body">
+            <div class="label">💵 费用</div>
+            <div class="value">${{ usage_stats.total_cost|default:'0' }}</div>
+        </div></div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="card panel-card stat-card stat-card-danger"><div class="card-body">
+            <div class="label">⚠️ 错误数</div>
+            <div class="value">{{ usage_stats.error_count|default:'0' }}</div>
+        </div></div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-lg-7">
         <div class="card panel-card h-100 quota-card"><div class="card-body">
-            <h4 class="section-title">📊 本月额度</h4>
+            <h5 class="section-title">🤖 模型使用明细（{{ range_label }}）</h5>
+            {% if model_breakdown %}
+            <div class="table-responsive soft-table-wrap">
+                <table class="table table-sm soft-table align-middle mb-0">
+                    <thead><tr><th>模型</th><th>Token</th><th>请求数</th></tr></thead>
+                    <tbody>
+                    {% for item in model_breakdown %}
+                        <tr>
+                            <td><span class="model-chip">{{ item.model_name }}</span></td>
+                            <td>{{ item.total_tokens|token_unit }}</td>
+                            <td>{{ item.total_requests }}</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+                <p class="text-muted mb-0">该时间范围内暂无使用记录</p>
+            {% endif %}
+        </div></div>
+    </div>
+    <div class="col-lg-5">
+        <div class="card panel-card h-100 quota-card"><div class="card-body">
+            <h5 class="section-title">📊 本月额度</h5>
             {% if snapshot %}
                 <div class="row g-3 mb-3">
                     <div class="col-6">
@@ -44,50 +105,69 @@
                     </div>
                 </div>
             {% else %}
-                <p class="text-muted">本月暂无额度数据</p>
+                <p class="text-muted">本月暂无额度配置</p>
             {% endif %}
-            {% if bound_keys %}
+
+            {% if snapshots %}
             <hr>
-            <h5 class="section-title">🔑 调用信息</h5>
-            <div class="api-info-box mb-3" onclick="copyToClipboard('{{ cliproxy_base_url }}', this)" title="点击复制">
-                <div class="api-info-row">
-                    <span class="api-info-label">Base URL</span>
-                    <code>{{ cliproxy_base_url }}</code>
-                </div>
+            <h6 class="text-muted mb-2">历史额度</h6>
+            <div class="table-responsive soft-table-wrap scroll-table" style="max-height: 160px;">
+                <table class="table table-sm soft-table align-middle mb-0">
+                    <thead><tr><th>月份</th><th>Token</th><th>费用</th></tr></thead>
+                    <tbody>
+                    {% for item in snapshots %}
+                        <tr>
+                            <td>{{ item.year }}-{{ item.month|stringformat:'02d' }}</td>
+                            <td>{{ item.token_used|token_unit }} / {{ item.token_limit|token_unit }}</td>
+                            <td>${{ item.cost_used }} / ${{ item.cost_limit }}</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
             </div>
-            {% for key in bound_keys %}
-                <div class="api-info-box mb-2" onclick="copyToClipboard('{{ key.token_plaintext|default:key.token_masked }}', this)" title="点击复制">
-                    <div class="api-info-row flex-wrap gap-2">
-                        <span class="api-info-label">API 密钥</span>
-                        <code>{{ key.token_plaintext|default:key.token_masked }}</code>
-                    </div>
-                </div>
-            {% endfor %}
-            <p class="text-muted mt-2 mb-0" style="font-size: 0.82rem;"><i class="bi bi-info-circle me-1"></i>点击上方信息框可快速复制</p>
             {% endif %}
-        </div></div>
-    </div>
-    <div class="col-lg-6">
-        <div class="card panel-card h-100 quota-card quota-tips-card"><div class="card-body">
-            <h4 class="section-title">⚠️ 使用提醒</h4>
-            <ul class="rules-list compact-rules mb-0">
-                <li>复制 API 密钥后仅在可信设备中使用。</li>
-                <li>若发现异常调用，请联系管理员更换密钥。</li>
-                <li>请勿公开分享调用地址与密钥。</li>
-                <li>密钥仅限本人使用，严禁外借或转交。</li>
-            </ul>
         </div></div>
     </div>
 </div>
+
+{% if bound_keys %}
+<div class="row g-4">
+    <div class="col-12">
+        <div class="card panel-card quota-card"><div class="card-body">
+            <h5 class="section-title">🔑 调用信息</h5>
+            <div class="row g-3">
+                <div class="col-lg-4">
+                    <div class="api-info-box" onclick="copyToClipboard('{{ cliproxy_base_url }}', this)" title="点击复制" role="button">
+                        <div class="api-info-row">
+                            <span class="api-info-label">Base URL</span>
+                            <code>{{ cliproxy_base_url }}</code>
+                        </div>
+                    </div>
+                </div>
+                {% for key in bound_keys %}
+                <div class="col-lg-4">
+                    <div class="api-info-box" onclick="copyToClipboard('{{ key.token_plaintext|default:key.token_masked }}', this)" title="点击复制" role="button">
+                        <div class="api-info-row flex-wrap gap-2">
+                            <span class="api-info-label">API 密钥</span>
+                            <code>{{ key.token_plaintext|default:key.token_masked }}</code>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            <p class="text-muted mt-2 mb-0" style="font-size: 0.82rem;"><i class="bi bi-info-circle me-1"></i>点击信息框可快速复制</p>
+        </div></div>
+    </div>
+</div>
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}
 <script>
 function copyToClipboard(text, el) {
     navigator.clipboard.writeText(text).then(function() {
-        var orig = el.style.borderColor;
         el.style.borderColor = 'rgba(34,197,94,0.6)';
-        setTimeout(function() { el.style.borderColor = orig; }, 800);
+        setTimeout(function() { el.style.borderColor = ''; }, 800);
     });
 }
 </script>
