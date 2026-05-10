@@ -35,22 +35,22 @@
                 </div>
             </div>
             <div class="token-trend-frame"><canvas id="trendChart" height="130"></canvas></div>
-            <div class="dashboard-model-usage">
-                <span class="dashboard-model-usage-label">模型使用量</span>
-                <div class="model-chip-group">
-                    {% for item in model_usage %}
-                        <span class="model-chip">{{ item.model_name }} · {{ item.total_tokens|token_unit }}</span>
-                    {% empty %}
-                        <span class="text-muted">暂无模型消耗数据</span>
-                    {% endfor %}
-                </div>
-            </div>
         </div></div>
     </div>
     <div class="col-lg-4">
         <div class="card panel-card chart-card h-100"><div class="card-body">
             <h5 class="section-title">🤖 模型 Token 占比</h5>
-            <canvas id="modelUsageChart" height="180"></canvas>
+            <canvas id="modelUsageChart" height="160"></canvas>
+            <div class="dashboard-model-usage mt-3">
+                <span class="dashboard-model-usage-label">模型使用量</span>
+                <div class="model-chip-group mt-2">
+                    {% for item in model_usage %}
+                        <span class="model-chip">{{ item.model_name }} · {{ item.total_tokens|token_unit }}</span>
+                    {% empty %}
+                        <span class="text-muted">暂无数据</span>
+                    {% endfor %}
+                </div>
+            </div>
         </div></div>
     </div>
 </div>
