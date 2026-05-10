@@ -315,7 +315,7 @@ def aggregate_dashboard(queryset, trend_bucket="day"):
         .filter(api_key__user__profile__is_dashboard_visible=True)
         .values("api_key", "api_key__user__username", "api_key__user__profile__display_name", "api_key__user__profile__lab_group", "api_key__user__profile__grade")
         .annotate(total_tokens=Sum("total_tokens"), total_requests=Count("id"), top_model=Max("model_name"))
-        .order_by("-total_tokens")[:DASHBOARD_RANK_LIMIT]
+        .order_by("-total_tokens")
     )
     for item in top_keys:
         key_rank.append(
