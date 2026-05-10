@@ -909,3 +909,19 @@ select:focus-visible {
         background: #fff !important;
     }
 }
+
+/* ===== Date picker unified style ===== */
+.date-picker-custom {
+    width: 130px;
+    border-radius: 999px !important;
+    font-size: 0.82rem;
+    padding: 0.4rem 0.75rem;
+    background: rgba(79, 70, 229, 0.06);
+    border: 1px solid rgba(79, 70, 229, 0.18) !important;
+    color: var(--text-main);
+}
+
+.date-picker-custom:focus {
+    background: #fff;
+    border-color: var(--brand) !important;
+}
