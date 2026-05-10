@@ -214,7 +214,35 @@ def normalize_cliproxy_usage_payload(payload):
 def sync_cliproxy_usage_records():
     payload = fetch_cliproxy_usage_records()
     records = normalize_cliproxy_usage_payload(payload)
-    return import_usage_records(records, UsageImportJob.SOURCE_API, "cliproxy-management-api")
+
+    # Only import records whose api_key_identifier matches a key bound in the portal.
+    # This filters out usage from external/outsourced keys not managed here.
+    known_plaintexts = set(
+        APIKey.objects.exclude(token_plaintext="").values_list("token_plaintext", flat=True)
+    )
+    known_hashes = set(
+        APIKey.objects.values_list("token_hash", flat=True)
+    )
+    known_prefixes = set(
+        APIKey.objects.exclude(token_prefix="").values_list("token_prefix", flat=True)
+    )
+
+    filtered = []
+    for record in records:
+        key_id = (record.get("api_key_identifier") or "").strip()
+        if not key_id:
+            # No key identifier — include it (might be matched by user_identifier later)
+            filtered.append(record)
+            continue
+        if key_id in known_plaintexts:
+            filtered.append(record)
+        elif APIKey.hash_token(key_id) in known_hashes:
+            filtered.append(record)
+        elif key_id[:12] in known_prefixes:
+            filtered.append(record)
+        # else: external key, skip
+
+    return import_usage_records(filtered, UsageImportJob.SOURCE_API, "cliproxy-management-api")
 
 
 def auto_sync_cliproxy_usage_records(force=False):
