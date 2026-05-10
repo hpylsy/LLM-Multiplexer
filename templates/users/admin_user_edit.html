@@ -1,33 +1,117 @@
 {% extends 'base.html' %}
 
-{% block title %}管理员 - 编辑用户{% endblock %}
+{% block title %}编辑用户 - {{ target_user.username }}{% endblock %}
 
 {% block content %}
-<div class="card panel-card"><div class="card-body">
-    <h3>编辑用户：{{ target_user.username }}</h3>
-    <form method="post" class="mb-4">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button class="btn btn-primary rounded-pill px-4" type="submit" name="save_profile" value="1">保存资料</button>
-    </form>
-    {% if key_form %}
-    <hr>
-    <form method="post" class="mb-4">
-        {% csrf_token %}
-        {{ key_form.as_p }}
-        <button class="btn btn-info rounded-pill px-4" type="submit" name="save_key" value="1">更新绑定密钥</button>
-    </form>
-    {% endif %}
-    <hr>
-    <form method="post" class="mb-4">
-        {% csrf_token %}
-        {{ password_form.as_p }}
-        <button class="btn btn-warning rounded-pill px-4" type="submit" name="save_password" value="1">修改密码</button>
-    </form>
-    <hr>
-    <form method="post" onsubmit="return confirm('确认注销该账户？')">
-        {% csrf_token %}
-        <button class="btn btn-danger rounded-pill px-4" type="submit" name="delete_user" value="1">注销账户</button>
-    </form>
-</div></div>
+<section class="page-hero mb-4">
+    <span class="eyebrow-badge mb-2 d-inline-flex">Admin</span>
+    <h3 class="mb-1">编辑用户：{{ target_user.username }}</h3>
+    <p class="text-muted mb-0">修改用户基本信息、密钥绑定或重置密码。</p>
+</section>
+
+<div class="row g-4">
+    <div class="col-lg-7">
+        <div class="card panel-card mb-4"><div class="card-body">
+            <h5 class="section-title">👤 基本信息</h5>
+            <form method="post">
+                {% csrf_token %}
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold" for="id_profile-username">用户名</label>
+                        {{ form.username }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold" for="id_profile-display_name">显示名</label>
+                        {{ form.display_name }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold" for="id_profile-role">角色</label>
+                        {{ form.role }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold" for="id_profile-lab_group">分组</label>
+                        {{ form.lab_group }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold" for="id_profile-grade">年级</label>
+                        {{ form.grade }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold" for="id_profile-member_type">队员身份</label>
+                        {{ form.member_type }}
+                    </div>
+                    <div class="col-md-6 d-flex align-items-end">
+                        <div class="form-check">
+                            {{ form.is_dashboard_visible }}
+                            <label class="form-check-label" for="id_profile-is_dashboard_visible">在排行榜中可见</label>
+                        </div>
+                    </div>
+                </div>
+                {% if form.errors %}
+                <div class="alert alert-danger mt-3 mb-0 py-2 rounded-3">
+                    {% for field, errs in form.errors.items %}
+                        {% for e in errs %}<div>{{ e }}</div>{% endfor %}
+                    {% endfor %}
+                </div>
+                {% endif %}
+                <div class="mt-3">
+                    <button class="btn btn-primary rounded-pill px-4" type="submit" name="save_profile" value="1">保存信息</button>
+                </div>
+            </form>
+        </div></div>
+
+        {% if key_form %}
+        <div class="card panel-card mb-4"><div class="card-body">
+            <h5 class="section-title">🔑 绑定密钥</h5>
+            <form method="post">
+                {% csrf_token %}
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">密钥名称</label>
+                        {{ key_form.name }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">状态</label>
+                        {{ key_form.status }}
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label fw-semibold">密钥明文</label>
+                        {{ key_form.token_plaintext }}
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label fw-semibold">备注</label>
+                        {{ key_form.note }}
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <button class="btn btn-soft rounded-pill px-4" type="submit" name="save_key" value="1">更新密钥</button>
+                </div>
+            </form>
+        </div></div>
+        {% endif %}
+    </div>
+
+    <div class="col-lg-5">
+        <div class="card panel-card mb-4"><div class="card-body">
+            <h5 class="section-title">🔒 修改密码</h5>
+            <form method="post">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">新密码</label>
+                    {{ password_form.new_password }}
+                </div>
+                <button class="btn btn-warning rounded-pill px-4" type="submit" name="save_password" value="1">重置密码</button>
+            </form>
+        </div></div>
+
+        <div class="card panel-card border-danger"><div class="card-body">
+            <h5 class="section-title text-danger">⚠️ 危险操作</h5>
+            <p class="text-muted mb-3">注销后该用户的所有数据将被删除，此操作不可撤销。</p>
+            <form method="post" onsubmit="return confirm('确认注销用户 {{ target_user.username }}？此操作不可撤销！')">
+                {% csrf_token %}
+                <button class="btn btn-danger rounded-pill px-4" type="submit" name="delete_user" value="1">注销账户</button>
+            </form>
+        </div></div>
+    </div>
+</div>
 {% endblock %}

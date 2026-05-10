@@ -812,21 +812,30 @@ code {
 }
 
 /* ===== Scrollbar styling ===== */
-.scroll-table::-webkit-scrollbar {
+.scroll-table::-webkit-scrollbar,
+.model-chip-group::-webkit-scrollbar,
+.soft-table-wrap::-webkit-scrollbar {
     width: 6px;
+    height: 6px;
 }
 
-.scroll-table::-webkit-scrollbar-track {
+.scroll-table::-webkit-scrollbar-track,
+.model-chip-group::-webkit-scrollbar-track,
+.soft-table-wrap::-webkit-scrollbar-track {
     background: transparent;
 }
 
-.scroll-table::-webkit-scrollbar-thumb {
-    background: rgba(148, 163, 184, 0.3);
+.scroll-table::-webkit-scrollbar-thumb,
+.model-chip-group::-webkit-scrollbar-thumb,
+.soft-table-wrap::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.25);
     border-radius: 3px;
 }
 
-.scroll-table::-webkit-scrollbar-thumb:hover {
-    background: rgba(148, 163, 184, 0.5);
+.scroll-table::-webkit-scrollbar-thumb:hover,
+.model-chip-group::-webkit-scrollbar-thumb:hover,
+.soft-table-wrap::-webkit-scrollbar-thumb:hover {
+    background: rgba(148, 163, 184, 0.4);
 }
 
 /* ===== Focus visible for accessibility ===== */
@@ -908,4 +917,71 @@ select:focus-visible {
     body.site-body {
         background: #fff !important;
     }
+}
+
+/* ===== Date picker unified style ===== */
+.date-picker-custom {
+    width: 130px;
+    border-radius: 999px !important;
+    font-size: 0.82rem;
+    padding: 0.4rem 0.75rem;
+    background: rgba(79, 70, 229, 0.06);
+    border: 1px solid rgba(79, 70, 229, 0.18) !important;
+    color: var(--text-main);
+}
+
+.date-picker-custom:focus {
+    background: #fff;
+    border-color: var(--brand) !important;
+}
+
+/* ===== Navbar logout button (softer than white) ===== */
+.btn-nav-logout {
+    background: rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.btn-nav-logout:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.4);
+}
+
+/* ===== Dashboard filter selects ===== */
+.dashboard-filter-select {
+    width: 110px;
+    border-radius: 999px !important;
+    background: rgba(79, 70, 229, 0.06);
+    border-color: rgba(79, 70, 229, 0.15) !important;
+    text-align: center;
+    text-align-last: center;
+    -moz-text-align-last: center;
+    padding-left: 0.5rem;
+    padding-right: 1.5rem;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%234f46e5' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.5rem center;
+    background-size: 12px;
+}
+
+/* ===== Global scrollbar (page-level) ===== */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.3);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(148, 163, 184, 0.5);
 }

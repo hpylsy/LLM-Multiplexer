@@ -5,33 +5,161 @@
 
 {% block content %}
 <section class="page-hero mb-4">
-    <span class="eyebrow-badge mb-2 d-inline-flex">Admin</span>
-    <h3 class="mb-1">用户列表</h3>
-    <p class="text-muted mb-0">集中查看实验室成员角色、分组、年级与本月使用情况。</p>
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+        <div>
+            <span class="eyebrow-badge mb-2 d-inline-flex">Admin</span>
+            <h3 class="mb-1">用户列表</h3>
+            <p class="text-muted mb-0">管理成员账号、分组、年级与状态。</p>
+        </div>
+        <a class="btn btn-primary rounded-pill px-4" href="/users/admin/create/">
+            <i class="bi bi-plus-circle me-1"></i>创建用户
+        </a>
+    </div>
 </section>
 
-<div class="card panel-card"><div class="card-body">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h3 class="mb-0">用户列表</h3>
-        <a class="btn btn-primary rounded-pill px-4" href="/users/admin/create/">创建用户并绑定 Key</a>
+<div class="card panel-card mb-4"><div class="card-body py-3">
+    <div class="d-flex flex-wrap align-items-center gap-3">
+        <span class="fw-semibold text-muted"><i class="bi bi-funnel me-1"></i>筛选</span>
+        <select class="form-select form-select-sm" style="width:auto; min-width:120px;" onchange="applyFilter();" id="filterGroup">
+            <option value="all" {% if group_filter == 'all' %}selected{% endif %}>全部分组</option>
+            {% for g in all_groups %}
+                <option value="{{ g }}" {% if g == group_filter %}selected{% endif %}>{{ g }}</option>
+            {% endfor %}
+        </select>
+        <select class="form-select form-select-sm" style="width:auto; min-width:120px;" onchange="applyFilter();" id="filterGrade">
+            <option value="all" {% if grade_filter == 'all' %}selected{% endif %}>全部年级</option>
+            {% for g in all_grades %}
+                <option value="{{ g }}" {% if g == grade_filter %}selected{% endif %}>{{ g }}级</option>
+            {% endfor %}
+        </select>
+        <select class="form-select form-select-sm" style="width:auto; min-width:120px;" onchange="applyFilter();" id="filterStatus">
+            <option value="all" {% if status_filter == 'all' %}selected{% endif %}>全部状态</option>
+            <option value="active" {% if status_filter == 'active' %}selected{% endif %}>已启用</option>
+            <option value="disabled" {% if status_filter == 'disabled' %}selected{% endif %}>已停用</option>
+        </select>
+        {% if group_filter != 'all' or grade_filter != 'all' or status_filter != 'all' %}
+            <a href="/users/admin/list/" class="btn btn-sm btn-outline-secondary rounded-pill">清除筛选</a>
+        {% endif %}
+        <span class="text-muted ms-auto" style="font-size:0.85rem;">共 {{ users|length }} 人</span>
     </div>
+</div></div>
+
+<form method="post" action="/users/admin/batch/" id="batchForm">
+{% csrf_token %}
+<div class="card panel-card"><div class="card-body">
+    <!-- Batch action bar -->
+    <div class="d-flex align-items-center gap-2 mb-3" id="batchBar" style="display:none !important;">
+        <span class="text-muted" style="font-size:0.85rem;">已选 <strong id="selectedCount">0</strong> 人</span>
+        <button type="submit" name="batch_action" value="enable" class="btn btn-sm btn-outline-success rounded-pill" onclick="return confirm('确认批量启用所选用户？')">
+            <i class="bi bi-check-circle me-1"></i>批量启用
+        </button>
+        <button type="submit" name="batch_action" value="disable" class="btn btn-sm btn-outline-warning rounded-pill" onclick="return confirm('确认批量停用所选用户？')">
+            <i class="bi bi-pause-circle me-1"></i>批量停用
+        </button>
+        <button type="submit" name="batch_action" value="delete" class="btn btn-sm btn-outline-danger rounded-pill" onclick="return confirm('确认批量删除所选用户？此操作不可撤销！')">
+            <i class="bi bi-trash me-1"></i>批量删除
+        </button>
+    </div>
+
     <div class="table-responsive soft-table-wrap">
-        <table class="table soft-table align-middle">
-            <thead><tr><th>用户名</th><th>显示名</th><th>角色</th><th>分组</th><th>年级</th><th>月消耗 Token</th><th></th></tr></thead>
+        <table class="table soft-table align-middle mb-0">
+            <thead><tr>
+                <th style="width:36px;"><input type="checkbox" class="form-check-input" id="selectAll" onchange="toggleAll(this)"></th>
+                <th>用户名</th>
+                <th>显示名</th>
+                <th>分组</th>
+                <th>年级</th>
+                <th>身份</th>
+                <th>状态</th>
+                <th>月消耗</th>
+                <th class="text-end">操作</th>
+            </tr></thead>
             <tbody>
             {% for item in users %}
-                <tr>
-                    <td>{{ item.username }}</td>
-                    <td>{{ item.profile.display_name }}</td>
-                    <td>{{ item.profile.get_role_display }}</td>
+                <tr {% if not item.is_active %}class="opacity-50"{% endif %}>
+                    <td><input type="checkbox" class="form-check-input user-check" name="user_ids" value="{{ item.id }}" onchange="updateBatchBar()" {% if item.is_staff %}disabled{% endif %}></td>
+                    <td class="fw-semibold">{{ item.username }}</td>
+                    <td>{{ item.profile.display_name|default:'-' }}</td>
                     <td>{{ item.profile.lab_group|default:'-' }}</td>
                     <td>{{ item.profile.grade|default:'-' }}</td>
-                    <td>{{ monthly_usage|get_item:item.id|default:'0' }}</td>
-                    <td><a class="btn btn-sm btn-soft" href="/users/admin/{{ item.id }}/edit/">编辑</a></td>
+                    <td><span class="badge text-bg-{% if item.profile.member_type == '正式队员' %}primary{% else %}secondary{% endif %}">{{ item.profile.member_type|default:'未设置' }}</span></td>
+                    <td>
+                        {% if item.is_active %}
+                            <span class="badge text-bg-success">启用</span>
+                        {% else %}
+                            <span class="badge text-bg-danger">停用</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ monthly_usage|get_item:item.id|default:'0'|token_unit }}</td>
+                    <td class="text-end">
+                        <div class="d-inline-flex gap-1">
+                            <a class="btn btn-sm btn-soft px-3" href="/users/admin/{{ item.id }}/edit/">编辑</a>
+                            {% if not item.is_staff %}
+                            <form method="post" action="/users/admin/{{ item.id }}/toggle/" style="display:inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm {% if item.is_active %}btn-outline-warning{% else %}btn-outline-success{% endif %} rounded-pill px-3" onclick="return confirm('确认{% if item.is_active %}停用{% else %}启用{% endif %} {{ item.username }}？')">
+                                    {% if item.is_active %}停用{% else %}启用{% endif %}
+                                </button>
+                            </form>
+                            <form method="post" action="/users/admin/{{ item.id }}/delete/" style="display:inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-3" onclick="return confirm('确认删除用户 {{ item.username }}？此操作不可撤销！')">删除</button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </td>
                 </tr>
+            {% empty %}
+                <tr><td colspan="9" class="text-center text-muted py-4">暂无用户</td></tr>
             {% endfor %}
             </tbody>
         </table>
     </div>
 </div></div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function applyFilter() {
+    var group = document.getElementById('filterGroup').value;
+    var grade = document.getElementById('filterGrade').value;
+    var status = document.getElementById('filterStatus').value;
+    var params = new URLSearchParams();
+    if (group !== 'all') params.set('group', group);
+    if (grade !== 'all') params.set('grade', grade);
+    if (status !== 'all') params.set('status', status);
+    location.href = '/users/admin/list/' + (params.toString() ? '?' + params.toString() : '');
+}
+
+function toggleAll(el) {
+    var checks = document.querySelectorAll('.user-check:not(:disabled)');
+    checks.forEach(function(c) { c.checked = el.checked; });
+    updateBatchBar();
+}
+
+function updateBatchBar() {
+    var checks = document.querySelectorAll('.user-check:checked');
+    var bar = document.getElementById('batchBar');
+    var count = document.getElementById('selectedCount');
+    count.textContent = checks.length;
+    if (checks.length > 0) {
+        bar.style.cssText = 'display: flex !important;';
+    } else {
+        bar.style.cssText = 'display: none !important;';
+    }
+}
+</script>
+<style>
+.user-check, #selectAll {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    border: 2px solid rgba(79, 70, 229, 0.4);
+}
+.user-check:checked, #selectAll:checked {
+    background-color: var(--brand);
+    border-color: var(--brand);
+}
+</style>
 {% endblock %}

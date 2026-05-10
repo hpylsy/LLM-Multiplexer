@@ -12,9 +12,41 @@ class ProfileForm(forms.ModelForm):
 
 
 class AdminProfileQuotaForm(forms.ModelForm):
+    username = forms.CharField(label="用户名", max_length=150, widget=forms.TextInput(attrs={"class": "form-control"}))
+
     class Meta:
         model = Profile
         fields = ["display_name", "role", "lab_group", "grade", "member_type", "is_dashboard_visible"]
+        widgets = {
+            "display_name": forms.TextInput(attrs={"class": "form-control"}),
+            "role": forms.Select(attrs={"class": "form-select"}),
+            "lab_group": forms.Select(attrs={"class": "form-select"}),
+            "grade": forms.TextInput(attrs={"class": "form-control"}),
+            "member_type": forms.Select(attrs={"class": "form-select"}),
+            "is_dashboard_visible": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        self.user_instance = kwargs.pop("user_instance", None)
+        super().__init__(*args, **kwargs)
+        if self.user_instance:
+            self.fields["username"].initial = self.user_instance.username
+
+    def clean_username(self):
+        username = self.cleaned_data["username"].strip()
+        if self.user_instance and username != self.user_instance.username:
+            if User.objects.filter(username=username).exists():
+                raise forms.ValidationError("该用户名已存在")
+        return username
+
+    def save(self, commit=True):
+        profile = super().save(commit=commit)
+        if self.user_instance:
+            new_username = self.cleaned_data["username"]
+            if new_username != self.user_instance.username:
+                self.user_instance.username = new_username
+                self.user_instance.save(update_fields=["username"])
+        return profile
 
 
 class AdminUserWithCliproxyKeyForm(forms.Form):
@@ -44,13 +76,24 @@ class AdminUserBoundKeyForm(forms.ModelForm):
     class Meta:
         model = APIKey
         fields = ["name", "token_plaintext", "status", "note"]
+        widgets = {
+            "name": forms.TextInput(attrs={"class": "form-control"}),
+            "token_plaintext": forms.TextInput(attrs={"class": "form-control"}),
+            "status": forms.Select(attrs={"class": "form-select"}),
+            "note": forms.Textarea(attrs={"class": "form-control", "rows": 2}),
+        }
 
 
 class AdminUserKeyOnlyForm(forms.ModelForm):
     class Meta:
         model = APIKey
         fields = ["token_plaintext", "status", "note"]
+        widgets = {
+            "token_plaintext": forms.TextInput(attrs={"class": "form-control"}),
+            "status": forms.Select(attrs={"class": "form-select"}),
+            "note": forms.Textarea(attrs={"class": "form-control", "rows": 2}),
+        }
 
 
 class AdminUserPasswordForm(forms.Form):
-    new_password = forms.CharField(label="新密码", widget=forms.PasswordInput)
+    new_password = forms.CharField(label="新密码", widget=forms.PasswordInput(attrs={"class": "form-control"}))

@@ -117,32 +117,41 @@ def import_usage_records(records, source_type, source_name):
     imported = skipped = failed = 0
     errors = []
 
+    # Quick pre-filter: extract request_ids first (cheap) and batch check existence
+    raw_request_ids = []
+    for raw in records:
+        rid = str(raw.get("request_id") or "").strip()
+        if rid:
+            raw_request_ids.append(rid)
+
+    # Batch lookup in chunks of 500 to avoid overly large IN clauses
+    existing_ids = set()
+    for i in range(0, len(raw_request_ids), 500):
+        chunk = raw_request_ids[i:i + 500]
+        existing_ids.update(
+            UsageLog.objects.filter(request_id__in=chunk).values_list("request_id", flat=True)
+        )
+
+    # Only normalize and import records that are actually new
     for index, raw in enumerate(records, start=1):
         try:
-            data = normalize_usage_record(raw)
-            if not data["request_id"]:
+            rid = str(raw.get("request_id") or "").strip()
+            if not rid:
                 failed += 1
                 errors.append(f"第 {index} 行缺少 request_id")
                 continue
-            existing_log = UsageLog.objects.filter(request_id=data["request_id"]).first()
-            if existing_log:
-                user, api_key = resolve_related_objects(data)
-                update_fields = []
-                if not existing_log.user_id and user:
-                    existing_log.user = user
-                    update_fields.append("user")
-                if not existing_log.api_key_id and api_key:
-                    existing_log.api_key = api_key
-                    update_fields.append("api_key")
-                if update_fields:
-                    existing_log.save(update_fields=update_fields)
+            if rid in existing_ids:
                 skipped += 1
                 continue
+            # Only do expensive normalization for new records
+            data = normalize_usage_record(raw)
             user, api_key = resolve_related_objects(data)
             UsageLog.objects.create(**data, user=user, api_key=api_key)
+            existing_ids.add(rid)  # Prevent duplicates within same batch
             imported += 1
         except Exception as exc:
             failed += 1
+            errors.append(f"第 {index} 行导入失败: {exc}")
             errors.append(f"第 {index} 行导入失败: {exc}")
 
     job.imported_count = imported
@@ -207,7 +216,35 @@ def normalize_cliproxy_usage_payload(payload):
 def sync_cliproxy_usage_records():
     payload = fetch_cliproxy_usage_records()
     records = normalize_cliproxy_usage_payload(payload)
-    return import_usage_records(records, UsageImportJob.SOURCE_API, "cliproxy-management-api")
+
+    # Only import records whose api_key_identifier matches a key bound in the portal.
+    # This filters out usage from external/outsourced keys not managed here.
+    known_plaintexts = set(
+        APIKey.objects.exclude(token_plaintext="").values_list("token_plaintext", flat=True)
+    )
+    known_hashes = set(
+        APIKey.objects.values_list("token_hash", flat=True)
+    )
+    known_prefixes = set(
+        APIKey.objects.exclude(token_prefix="").values_list("token_prefix", flat=True)
+    )
+
+    filtered = []
+    for record in records:
+        key_id = (record.get("api_key_identifier") or "").strip()
+        if not key_id:
+            # No key identifier — include it (might be matched by user_identifier later)
+            filtered.append(record)
+            continue
+        if key_id in known_plaintexts:
+            filtered.append(record)
+        elif APIKey.hash_token(key_id) in known_hashes:
+            filtered.append(record)
+        elif key_id[:12] in known_prefixes:
+            filtered.append(record)
+        # else: external key, skip
+
+    return import_usage_records(filtered, UsageImportJob.SOURCE_API, "cliproxy-management-api")
 
 
 def auto_sync_cliproxy_usage_records(force=False):
@@ -315,7 +352,7 @@ def aggregate_dashboard(queryset, trend_bucket="day"):
         .filter(api_key__user__profile__is_dashboard_visible=True)
         .values("api_key", "api_key__user__username", "api_key__user__profile__display_name", "api_key__user__profile__lab_group", "api_key__user__profile__grade")
         .annotate(total_tokens=Sum("total_tokens"), total_requests=Count("id"), top_model=Max("model_name"))
-        .order_by("-total_tokens")[:DASHBOARD_RANK_LIMIT]
+        .order_by("-total_tokens")
     )
     for item in top_keys:
         key_rank.append(
@@ -365,9 +402,11 @@ def aggregate_dashboard(queryset, trend_bucket="day"):
     # Parse cached/thinking tokens from raw_payload (only fetch needed fields)
     for row in queryset.only("request_time", "raw_payload").iterator(chunk_size=500):
         label = _trend_label(row.request_time, trend_bucket)
-        cached_tokens = _payload_int(row.raw_payload, ("tokens", "cached_tokens"), ("cached_tokens",), ("usage", "cached_tokens"))
+        cached_tokens = _payload_int(row.raw_payload, ("raw_payload", "tokens", "cached_tokens"), ("tokens", "cached_tokens"), ("cached_tokens",), ("usage", "cached_tokens"))
         thinking_tokens = _payload_int(
             row.raw_payload,
+            ("raw_payload", "tokens", "reasoning_tokens"),
+            ("raw_payload", "tokens", "thinking_tokens"),
             ("tokens", "thinking_tokens"),
             ("tokens", "reasoning_tokens"),
             ("thinking_tokens",),
