@@ -12,11 +12,19 @@ class ProfileForm(forms.ModelForm):
 
 
 class AdminProfileQuotaForm(forms.ModelForm):
-    username = forms.CharField(label="用户名", max_length=150)
+    username = forms.CharField(label="用户名", max_length=150, widget=forms.TextInput(attrs={"class": "form-control"}))
 
     class Meta:
         model = Profile
         fields = ["display_name", "role", "lab_group", "grade", "member_type", "is_dashboard_visible"]
+        widgets = {
+            "display_name": forms.TextInput(attrs={"class": "form-control"}),
+            "role": forms.Select(attrs={"class": "form-select"}),
+            "lab_group": forms.Select(attrs={"class": "form-select"}),
+            "grade": forms.TextInput(attrs={"class": "form-control"}),
+            "member_type": forms.Select(attrs={"class": "form-select"}),
+            "is_dashboard_visible": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+        }
 
     def __init__(self, *args, **kwargs):
         self.user_instance = kwargs.pop("user_instance", None)
@@ -68,13 +76,24 @@ class AdminUserBoundKeyForm(forms.ModelForm):
     class Meta:
         model = APIKey
         fields = ["name", "token_plaintext", "status", "note"]
+        widgets = {
+            "name": forms.TextInput(attrs={"class": "form-control"}),
+            "token_plaintext": forms.TextInput(attrs={"class": "form-control"}),
+            "status": forms.Select(attrs={"class": "form-select"}),
+            "note": forms.Textarea(attrs={"class": "form-control", "rows": 2}),
+        }
 
 
 class AdminUserKeyOnlyForm(forms.ModelForm):
     class Meta:
         model = APIKey
         fields = ["token_plaintext", "status", "note"]
+        widgets = {
+            "token_plaintext": forms.TextInput(attrs={"class": "form-control"}),
+            "status": forms.Select(attrs={"class": "form-select"}),
+            "note": forms.Textarea(attrs={"class": "form-control", "rows": 2}),
+        }
 
 
 class AdminUserPasswordForm(forms.Form):
-    new_password = forms.CharField(label="新密码", widget=forms.PasswordInput)
+    new_password = forms.CharField(label="新密码", widget=forms.PasswordInput(attrs={"class": "form-control"}))
