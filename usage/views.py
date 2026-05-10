@@ -75,6 +75,23 @@ def import_usage_logs_view(request):
     return render(request, "usage/import_usage_logs.html", {"form": form, "jobs": jobs})
 
 
+@admin_required
+def sync_trigger(request):
+    """AJAX endpoint for manual sync trigger."""
+    if request.method != "POST":
+        return JsonResponse({"ok": False, "error": "POST required"}, status=405)
+    try:
+        job = sync_cliproxy_usage_records()
+        return JsonResponse({
+            "ok": True,
+            "imported": job.imported_count,
+            "skipped": job.skipped_count,
+            "failed": job.failed_count,
+        })
+    except Exception as e:
+        return JsonResponse({"ok": False, "error": str(e)}, status=500)
+
+
 @login_required
 def auto_sync_status(request):
     job, triggered = auto_sync_cliproxy_usage_records()

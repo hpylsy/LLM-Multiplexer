@@ -14,13 +14,10 @@
         <div class="card panel-card h-100"><div class="card-body">
             <h5 class="section-title">🔄 自动同步</h5>
             <p class="text-muted mb-3">从 CLIProxy 管理接口拉取最新使用记录，自动匹配绑定账号。</p>
-            <form method="post" enctype="multipart/form-data" id="syncForm">
-                {% csrf_token %}
-                <button class="btn btn-primary rounded-pill px-4 d-inline-flex align-items-center gap-2" type="submit" name="sync_cliproxy" value="1" id="syncBtn" onclick="startSync(this)">
-                    <i class="bi bi-arrow-repeat" id="syncIcon"></i>
-                    <span id="syncText">从 CLIProxy 同步</span>
-                </button>
-            </form>
+            <button class="btn btn-primary rounded-pill px-4 d-inline-flex align-items-center gap-2" type="button" id="syncBtn" onclick="doSync()">
+                <i class="bi bi-arrow-repeat" id="syncIcon"></i>
+                <span id="syncText">从 CLIProxy 同步</span>
+            </button>
             <div id="syncResult" class="mt-3" style="display:none;"></div>
         </div></div>
     </div>
@@ -67,24 +64,54 @@
 
 {% block extra_js %}
 <script>
-function startSync(btn) {
+function doSync() {
+    var btn = document.getElementById('syncBtn');
+    var icon = document.getElementById('syncIcon');
+    var text = document.getElementById('syncText');
+    var result = document.getElementById('syncResult');
+
     btn.disabled = true;
-    document.getElementById('syncIcon').classList.add('spin-animation');
-    document.getElementById('syncText').textContent = '同步中...';
-    document.getElementById('syncResult').style.display = 'none';
+    icon.classList.add('spin-animation');
+    text.textContent = '同步中...';
+    result.style.display = 'none';
+
+    fetch('/usage/sync/trigger/', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(function(resp) { return resp.json(); })
+    .then(function(data) {
+        icon.classList.remove('spin-animation');
+        btn.disabled = false;
+        text.textContent = '从 CLIProxy 同步';
+        result.style.display = 'block';
+        if (data.ok) {
+            result.innerHTML = '<div class="alert alert-success border-0 py-2 px-3 mb-0 rounded-3"><i class="bi bi-check-circle me-1"></i>同步完成：新增 <strong>' + data.imported + '</strong> 条，跳过 ' + data.skipped + ' 条' + (data.failed > 0 ? '，失败 ' + data.failed + ' 条' : '') + '</div>';
+        } else {
+            result.innerHTML = '<div class="alert alert-danger border-0 py-2 px-3 mb-0 rounded-3"><i class="bi bi-x-circle me-1"></i>同步失败：' + (data.error || '未知错误') + '</div>';
+        }
+        // Refresh the table
+        setTimeout(function() { location.reload(); }, 2000);
+    })
+    .catch(function(err) {
+        icon.classList.remove('spin-animation');
+        btn.disabled = false;
+        text.textContent = '从 CLIProxy 同步';
+        result.style.display = 'block';
+        result.innerHTML = '<div class="alert alert-danger border-0 py-2 px-3 mb-0 rounded-3"><i class="bi bi-x-circle me-1"></i>请求失败：' + err.message + '</div>';
+    });
 }
 
-// Show result after page reload (Django messages)
-document.addEventListener('DOMContentLoaded', function() {
-    var alerts = document.querySelectorAll('.soft-alert');
-    if (alerts.length > 0) {
-        var resultDiv = document.getElementById('syncResult');
-        if (resultDiv) {
-            resultDiv.style.display = 'block';
-            resultDiv.innerHTML = '<div class="alert alert-success border-0 py-2 px-3 mb-0 rounded-pill d-inline-flex align-items-center gap-2"><i class="bi bi-check-circle"></i> 同步完成，详情见下方记录表</div>';
-        }
-    }
-});
+function getCookie(name) {
+    var value = '; ' + document.cookie;
+    var parts = value.split('; ' + name + '=');
+    if (parts.length === 2) return parts.pop().split(';').shift();
+    return '';
+}
 </script>
 <style>
 .spin-animation { animation: spin 1s linear infinite; }
