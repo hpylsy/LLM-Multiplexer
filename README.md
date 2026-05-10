@@ -1,494 +1,239 @@
-# Pioneer Portal 部署与迁移说明
+# AI Relay Portal（AI 中转站门户）
 
-本文档专门用于说明如何把 [`pioneer-portal`](../pioneer-portal/README.md) 迁移到远端服务器，并说明：
+一个开箱即用的 **大模型 API 中转站管理门户**，为团队提供统一的 API 密钥管理、使用量统计、成员额度管控和可视化仪表盘。
 
-- 迁移后哪些配置必须修改
-- 如何与远端已有的 [`cli-proxy-api`](../cliproxyapi/cli-proxy-api) 协同工作
-- 什么情况下需要修改远端 CLIProxy
-- 上线后的推荐部署方式与排障方法
+![首页截图](docs/screenshots/home.png)
 
----
+## ✨ 功能特性
 
-## 1. 先说结论
+- 📊 **实时仪表盘** — 请求量、Token 消耗、费用、错误率一目了然
+- 👥 **成员管理** — 按组/年级管理成员，分配 API 密钥
+- 🔑 **密钥管理** — 绑定 CLIProxy 密钥，支持申请/审批流程
+- 📈 **使用统计** — 按模型、按用户、按时间段查看详细用量
+- 💰 **额度管控** — 月度 Token/费用额度配置与监控
+- 🔄 **自动同步** — 从 CLIProxy 管理接口自动拉取使用记录
+- 🎨 **完全可定制** — 品牌名称、Logo、背景图均可通过配置替换
+- 📱 **响应式设计** — 移动端友好，毛玻璃 UI 风格
 
-### 1.1 [`pioneer-portal`](../pioneer-portal/README.md) 一定要改什么
+## 🏗️ 技术栈
 
-迁移到远端后，至少需要修改这些内容：
+| 组件 | 技术 |
+|------|------|
+| 后端 | Django 4.2 + Gunicorn |
+| 数据库 | PostgreSQL 16 |
+| 前端 | Bootstrap 5.3 + Chart.js |
+| 部署 | Docker Compose / 裸机 + Nginx |
 
-1. Django 环境变量
-2. 数据库连接信息
-3. 允许访问的域名 / IP
-4. 供门户拉取 usage 的 CLIProxy 管理接口地址
-5. 静态文件与运行方式（开发模式不能直接当生产模式长期跑）
+## 📋 前置要求
 
-### 1.2 远端的 [`cli-proxy-api`](../cliproxyapi/cli-proxy-api) 要不要改
-
-**分情况：**
-
-- 如果远端 CLIProxy **已经稳定运行**，并且你只想让门户读取它的 usage / 管理接口，**通常不用改 CLIProxy 主程序本体**。
-- 你只需要确认：
-  - CLIProxy 正在运行
-  - 管理接口可访问
-  - 返回的数据格式和门户当前读取逻辑兼容
-- 只有在以下情况才需要改远端 CLIProxy：
-  1. 管理接口端口不对
-  2. 管理接口路径不是门户当前使用的路径
-  3. 远端没开启管理接口
-  4. usage 返回格式和门户解析逻辑不一致
-
-也就是说，**优先改门户配置，不要先动远端 CLIProxy 代码**。
+- Python 3.10+
+- PostgreSQL 12+
+- 一个运行中的 [CLIProxy](https://github.com/musistudio/cli-proxy-api)（或兼容的 OpenAI API 代理）
+- （可选）Docker + Docker Compose
 
 ---
 
-## 2. 迁移前，你应该准备什么
+## 🚀 快速开始
 
-建议远端至少具备：
-
-- Linux 服务器
-- Python 3.10+ 或 3.11
-- PostgreSQL
-- Nginx（推荐）
-- systemd（推荐）
-
-你计划把 [`pioneer-portal`](../pioneer-portal/README.md) 推到 GitHub，再拉到远端，这个流程是对的。
-
-建议远端目录类似：
-
-```text
-/home/youruser/
-├── pioneer-portal/
-├── cli-proxy/
-│   ├── cli-proxy-api
-│   └── config.yaml
-└── venvs/
-    └── pioneer-portal-venv/
-```
-
-其中：
-
-- [`pioneer-portal`](../pioneer-portal/README.md) 放新门户代码
-- [`cli-proxy-api`](../cliproxyapi/cli-proxy-api) 继续作为远端代理主程序
-- Python 虚拟环境建议**单独放**，不要再放旧目录里，避免以后误删
-
----
-
-## 3. 迁移到远端的标准步骤
-
-## 3.1 拉取代码
-
-在远端服务器执行：
+### 方式一：Docker Compose（推荐）
 
 ```bash
-git clone <你的 GitHub 仓库地址> pioneer-portal
-cd pioneer-portal
-```
+# 1. 克隆仓库
+git clone https://github.com/your-username/ai-relay-portal.git
+cd ai-relay-portal
 
-## 3.2 创建虚拟环境并安装依赖
-
-```bash
-python3 -m venv /home/youruser/venvs/pioneer-portal-venv
-source /home/youruser/venvs/pioneer-portal-venv/bin/activate
-pip install -r requirements.txt
-```
-
-## 3.3 准备环境变量
-
-如果仓库中有 [`.env.example`](../pioneer-portal/.env.example)，先复制：
-
-```bash
+# 2. 配置环境变量
 cp .env.example .env
+# 编辑 .env，至少修改以下项：
+#   DJANGO_SECRET_KEY（生成随机字符串）
+#   POSTGRES_PASSWORD
+#   CLIPROXY_BASE_URL
+#   CLIPROXY_MANAGEMENT_KEY
+#   SITE_TITLE（你的站点名称）
+
+# 3. 替换品牌资源（可选）
+# 将你的 Logo 放到 static/brand/team-logo.png
+# 将背景图放到 static/brand/background-main.jpg
+
+# 4. 启动
+docker compose up -d
+
+# 5. 创建管理员
+docker compose exec web python manage.py createsuperuser
+
+# 6. 访问
+# http://localhost:8080
 ```
 
-然后重点修改以下配置。
-
----
-
-## 4. 迁移后 [`pioneer-portal`](../pioneer-portal/README.md) 必须改的配置
-
-## 4.1 Django 基础配置
-
-至少保证这些变量正确：
-
-- `DJANGO_SECRET_KEY`
-- `DJANGO_DEBUG=False`
-- `DJANGO_ALLOWED_HOSTS`
-- `DJANGO_CSRF_TRUSTED_ORIGINS`
-
-例如：
-
-```env
-DJANGO_SECRET_KEY=换成你自己的强随机字符串
-DJANGO_DEBUG=False
-DJANGO_ALLOWED_HOSTS=your-domain.com,server-ip,127.0.0.1
-DJANGO_CSRF_TRUSTED_ORIGINS=https://your-domain.com,http://server-ip
-```
-
-如果这些不改，常见问题包括：
-
-- 无法通过域名访问
-- CSRF 403
-- Debug 页面暴露
-
----
-
-## 4.2 数据库配置
-
-你需要让远端门户连接自己的 PostgreSQL，而不是本地开发数据库。
-
-确保：
-
-- 数据库已创建
-- 用户有权限
-- `.env` 中数据库主机、端口、库名、用户名、密码正确
-
-迁移后执行：
+### 方式二：裸机部署
 
 ```bash
+# 1. 克隆仓库
+git clone https://github.com/your-username/ai-relay-portal.git
+cd ai-relay-portal
+
+# 2. 创建虚拟环境
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+
+# 3. 配置
+cp .env.example .env
+# 编辑 .env（参考上方说明）
+# 注意：裸机部署时 POSTGRES_HOST 改为 localhost
+
+# 4. 初始化数据库
 python manage.py migrate
 python manage.py createsuperuser
+
+# 5. 生成 Favicon
+pip install Pillow
+python scripts/generate_favicon.py
+
+# 6. 收集静态文件
+python manage.py collectstatic --noinput
+
+# 7. 启动
+gunicorn lab_portal.wsgi:application --bind 127.0.0.1:8002 --workers 2
+
+# 8. 配置 Nginx 反向代理（见下方）
 ```
 
-如果你已经有数据迁移方案，也可以导入旧数据后再启动。
+---
+
+## ⚙️ 配置说明
+
+### 环境变量一览
+
+| 变量 | 说明 | 默认值 |
+|------|------|--------|
+| `DJANGO_SECRET_KEY` | Django 密钥（**必须修改**） | - |
+| `DJANGO_DEBUG` | 调试模式 | `True` |
+| `DJANGO_ALLOWED_HOSTS` | 允许的域名/IP | `127.0.0.1,localhost` |
+| `DJANGO_CSRF_TRUSTED_ORIGINS` | CSRF 信任源 | `http://127.0.0.1` |
+| `POSTGRES_DB` | 数据库名 | `lab_portal` |
+| `POSTGRES_USER` | 数据库用户 | `lab_portal` |
+| `POSTGRES_PASSWORD` | 数据库密码 | `lab_portal_password` |
+| `POSTGRES_HOST` | 数据库地址 | `db`（Docker）/ `localhost` |
+| `POSTGRES_PORT` | 数据库端口 | `5432` |
+| `CLIPROXY_BASE_URL` | CLIProxy 对外地址（给用户用） | - |
+| `CLIPROXY_MANAGEMENT_BASE_URL` | CLIProxy 管理接口地址 | - |
+| `CLIPROXY_MANAGEMENT_KEY` | 管理接口认证密钥 | - |
+| `SITE_TITLE` | 站点标题 | `AI中转站` |
+| `SITE_SUBTITLE` | 站点副标题 | `AI Relay Console` |
+| `SITE_DESCRIPTION` | 站点描述 | 面向团队成员... |
+| `SITE_TEAM_NAME` | 团队名称 | - |
+| `SITE_MOTTO` | 团队格言（留空则不显示） | - |
+| `SITE_MOTTO_DESCRIPTION` | 格言描述 | - |
+
+### 品牌定制
+
+1. **替换 Logo**：将你的 Logo 放到 `static/brand/team-logo.png`（正方形 PNG）
+2. **替换背景图**：替换 `static/brand/` 下的 jpg 文件
+3. **修改站名**：在 `.env` 中设置 `SITE_TITLE`、`SITE_SUBTITLE`
+4. **生成 Favicon**：运行 `python scripts/generate_favicon.py`
+5. **收集静态文件**：运行 `python manage.py collectstatic --noinput`
+
+详细说明见 [`static/brand/README.md`](static/brand/README.md)
 
 ---
 
-## 4.3 最关键配置：CLIProxy 管理接口地址
+## 🌐 Nginx 配置示例
 
-从你现在的报错看，门户会去请求：
+```nginx
+server {
+    listen 80;
+    server_name your-domain.com;
 
-- `http://127.0.0.1:8317/v0/management/usage`
+    client_max_body_size 20m;
 
-这说明 [`fetch_cliproxy_usage_records()`](usage/services.py:112) 依赖一个 **CLIProxy 管理接口地址**。
+    gzip on;
+    gzip_types text/plain text/css application/json application/javascript;
 
-所以迁移后必须确认两件事：
+    location /static/ {
+        alias /path/to/ai-relay-portal/staticfiles/;
+        expires 7d;
+    }
 
-1. 远端 CLIProxy 的管理接口是不是也监听在 `127.0.0.1:8317`
-2. 路径是不是 `/v0/management/usage`
+    location /media/ {
+        alias /path/to/ai-relay-portal/media/;
+        expires 7d;
+    }
 
-### 推荐部署关系
-
-如果 CLIProxy 和门户在**同一台服务器**：
-
-- CLIProxy 管理接口建议继续只监听本机，例如：`127.0.0.1:8317`
-- 门户服务本机访问它即可
-
-如果 CLIProxy 和门户在**不同服务器**：
-
-- 需要把门户配置改成 CLIProxy 所在服务器地址
-- 同时做好防火墙 / 反向代理 / 白名单控制
-
-### 推荐原则
-
-优先改门户读取地址，不优先改 CLIProxy 程序。
+    location / {
+        proxy_pass http://127.0.0.1:8002;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
 
 ---
 
-## 5. 怎么判断远端 CLIProxy 要不要改
+## 📖 使用指南
 
-## 5.1 不需要改的情况
+### 管理员操作
 
-如果远端 CLIProxy 满足以下条件，就**不需要修改 CLIProxy**：
+1. **创建用户**：管理面板 → 用户列表 → 创建用户并绑定 Key
+2. **同步数据**：管理面板 → 导入日志 → 点击"CLIProxy 同步"
+3. **配置价格**：管理面板 → 模型价格 → 添加模型定价
 
-1. 代理功能正常
-2. 管理接口可用
-3. 访问下面地址有返回：
+### 普通用户
+
+1. 登录后查看"公开面板"了解全队使用情况
+2. "使用记录"查看个人详细调用日志
+3. "我的额度"查看 API 密钥和 Base URL
+
+---
+
+## 🔧 开发
 
 ```bash
-curl http://127.0.0.1:8317/v0/management/usage
+# 安装依赖
+pip install -r requirements.txt
+
+# 运行开发服务器
+python manage.py runserver
+
+# 重建每日统计
+python manage.py rebuild_daily_stats
+
+# 手动同步 CLIProxy
+python manage.py sync_cliproxy_usage
 ```
 
-4. 返回数据字段能被 [`usage/services.py`](usage/services.py) 正常解析
-
-这种情况下，你只需要让 [`pioneer-portal`](../pioneer-portal/README.md) 对准这个地址即可。
-
-## 5.2 需要改的情况
-
-只有这些情况才建议改远端 CLIProxy：
-
-### 情况 A：管理接口根本没开
-
-表现：
-
-- 门户一直报连接拒绝
-- `curl` 管理接口失败
-
-这时要检查远端 CLIProxy 的配置文件 [`config.yaml`](../cliproxyapi/config.yaml) 是否开启管理接口。
-
-### 情况 B：端口不是 `8317`
-
-如果远端实际监听的是其他端口，比如 `9000`，那就：
-
-- 要么改门户配置
-- 要么改 CLIProxy 配置统一端口
-
-**优先建议改门户配置。**
-
-### 情况 C：路径不一致
-
-如果远端提供的是别的路径，而不是：
-
-- `/v0/management/usage`
-
-那就需要：
-
-- 修改门户的对接地址
-- 或修改 CLIProxy 的管理路由
-
-仍然建议**优先改门户**。
-
-### 情况 D：返回 JSON 结构不同
-
-如果远端 CLIProxy 版本和你现在本地用来适配的版本不同，返回字段可能不一样。
-
-这时通常要调整的是门户里的解析逻辑：
-
-- [`normalize_usage_record()`](usage/services.py:31)
-- [`resolve_related_objects()`](usage/services.py:63)
-- [`fetch_cliproxy_usage_records()`](usage/services.py:105)
-
-而不是先去动 CLIProxy 主体。
-
 ---
 
-## 6. 推荐你在远端做的验证顺序
+## 📁 项目结构
 
-## 6.1 先验证 CLIProxy 本身
-
-先在远端确认代理服务活着：
-
-```bash
-ps -ef | grep cli-proxy-api
-ss -ltnp | grep 8317
+```
+ai-relay-portal/
+├── lab_portal/          # Django 项目配置
+├── core/                # 核心功能（首页、健康检查、工具函数）
+├── users/               # 用户管理（Profile、管理员操作）
+├── api_keys/            # API 密钥管理
+├── usage/               # 使用记录（同步、导入、聚合）
+├── dashboard/           # 仪表盘（公开/管理面板）
+├── quota/               # 额度管理
+├── templates/           # HTML 模板
+├── static/              # 静态资源
+│   ├── brand/           # 品牌资源（Logo、背景图）
+│   └── css/             # 样式表
+├── scripts/             # 部署和工具脚本
+├── deployment/          # 部署配置（Nginx）
+├── docker-compose.yml   # Docker 编排
+├── Dockerfile           # 容器构建
+└── .env.example         # 环境变量模板
 ```
 
-然后验证管理接口：
-
-```bash
-curl http://127.0.0.1:8317/v0/management/usage
-```
-
-### 如果返回正常
-
-说明 CLIProxy 基本不用动。
-
-### 如果连接拒绝
-
-说明：
-
-- 要么 CLIProxy 没启动
-- 要么管理接口没开
-- 要么端口不对
-
-这个时候才去看远端的 [`config.yaml`](../cliproxyapi/config.yaml)。
-
 ---
 
-## 6.2 再验证门户数据库
+## 🤝 贡献
 
-```bash
-python manage.py migrate
-python manage.py check
-python manage.py createsuperuser
-```
+欢迎提交 Issue 和 Pull Request。
 
-如果 [`python manage.py check`](manage.py:1) 能过，说明 Django 项目基础没问题。
+## 📄 License
 
----
-
-## 6.3 再验证门户能否拉到 usage
-
-登录门户后，观察：
-
-- 首页
-- [`/dashboard/public/`](templates/dashboard/public_dashboard.html)
-- [`/dashboard/admin/`](templates/dashboard/admin_dashboard.html)
-- [`/usage/sync/status/`](usage/views.py:53)
-
-如果这里报错，优先看：
-
-- CLIProxy 管理接口连通性
-- 门户环境变量中的管理接口地址
-
----
-
-## 7. 生产环境推荐部署方式
-
-不要长期直接使用：
-
-```bash
-python manage.py runserver 0.0.0.0:8002
-```
-
-推荐使用：
-
-- Gunicorn + systemd
-- Nginx 反向代理
-
-## 7.1 Gunicorn 示例
-
-```bash
-gunicorn lab_portal.wsgi:application --bind 127.0.0.1:8002
-```
-
-## 7.2 Nginx 反代示例思路
-
-Nginx 对外监听 80/443，然后反向代理到：
-
-- `127.0.0.1:8002`
-
-静态文件由 Nginx 直接托管。
-
----
-
-## 8. 是否要把远端 CLIProxy 和门户放在一起
-
-推荐：**可以在同机部署，但分目录管理。**
-
-例如：
-
-- CLIProxy：`/opt/cliproxy/`
-- Portal：`/opt/pioneer-portal/`
-
-这样好处是：
-
-1. 门户升级不影响 CLIProxy 主程序
-2. CLIProxy 升级也不影响门户代码
-3. 出问题时更容易排查
-
----
-
-## 9. 你迁移后大概率需要手工改的地方清单
-
-下面是一份真正落地时的 checklist：
-
-### 门户侧必须检查
-
-- [ ] GitHub 代码已拉到远端
-- [ ] Python 虚拟环境已建立
-- [ ] 依赖已安装
-- [ ] `.env` 已配置
-- [ ] PostgreSQL 已准备好
-- [ ] 执行过 [`python manage.py migrate`](manage.py:1)
-- [ ] 执行过 [`python manage.py check`](manage.py:1)
-- [ ] 已创建管理员账号
-- [ ] 静态文件已处理
-- [ ] Gunicorn / systemd / Nginx 已配置
-
-### CLIProxy 侧必须检查
-
-- [ ] [`cli-proxy-api`](../cliproxyapi/cli-proxy-api) 正在远端运行
-- [ ] [`config.yaml`](../cliproxyapi/config.yaml) 配置正确
-- [ ] 管理接口可以从门户所在机器访问
-- [ ] `/v0/management/usage` 返回正常
-
----
-
-## 10. 关于“远端 cliproxy 是否需要修改”的最终建议
-
-最终建议非常明确：
-
-### 优先级 1：先不改远端 CLIProxy 代码
-
-先做这些：
-
-1. 启动远端 CLIProxy
-2. 确认管理接口地址
-3. 修改门户配置去对接它
-
-### 优先级 2：只有接口不兼容时，才改门户解析逻辑
-
-优先改：
-
-- [`usage/services.py`](usage/services.py)
-
-因为这属于适配层，风险更小。
-
-### 优先级 3：最后才考虑改 CLIProxy 本体
-
-只有当远端版本过老、根本不提供当前所需管理能力时，再考虑升级或修改 CLIProxy。
-
----
-
-## 11. 迁移完成后的首轮自测命令
-
-你把代码传上远端后，建议按下面顺序测试：
-
-```bash
-cd /path/to/pioneer-portal
-source /path/to/venv/bin/activate
-python manage.py check
-python manage.py migrate
-curl http://127.0.0.1:8317/v0/management/usage
-python manage.py runserver 0.0.0.0:8002
-```
-
-然后浏览器验证：
-
-- `/`
-- `/accounts/login/`
-- `/dashboard/public/`
-- `/dashboard/admin/`
-- `/usage/sync/status/`
-
----
-
-## 12. 你现在这套项目在远端最可能遇到的坑
-
-结合你当前本地现象，远端最容易出现的是：
-
-### 坑 1：CLIProxy 管理接口没开
-
-表现：
-
-- [`/usage/sync/status/`](usage/views.py:53) 报 500
-- 日志里出现 `Connection refused`
-
-### 坑 2：门户能启动，但拉不到 usage
-
-表现：
-
-- 页面能打开
-- 仪表盘没数据或自动同步报错
-
-### 坑 3：域名能打开，但表单提交 403
-
-表现：
-
-- 登录页可开
-- 登录 / POST 操作失败
-
-一般是：
-
-- `DJANGO_ALLOWED_HOSTS`
-- `DJANGO_CSRF_TRUSTED_ORIGINS`
-
-没配好。
-
-### 坑 4：静态文件丢失
-
-表现：
-
-- 页面有 HTML，但没样式
-- 图片不显示
-
-这通常是 Nginx 静态文件或 Django static 配置没处理好。
-
----
-
-## 13. 推荐的最终部署思路
-
-最推荐你采用下面的架构：
-
-1. 远端保留已有 [`cli-proxy-api`](../cliproxyapi/cli-proxy-api)
-2. 新建独立目录部署 [`pioneer-portal`](../pioneer-portal/README.md)
-3. 门户通过本机地址读取 CLIProxy 管理接口
-4. 不改 CLIProxy 主逻辑，优先改门户适配配置
-5. 用 Gunicorn + Nginx 托管门户
-
-这套方式风险最低，也最容易持续维护。
-
----
-
-## 14. 一句话结论
-
-把 [`pioneer-portal`](../pioneer-portal/README.md) 移植到远端后，**重点修改的是门户的环境变量、数据库配置和 CLIProxy 管理接口地址；远端 [`cli-proxy-api`](../cliproxyapi/cli-proxy-api) 通常不需要改代码，只需要确认它的管理接口确实可用。**
+MIT License

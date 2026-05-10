@@ -40,6 +40,7 @@ postgres_data/
 *.xlsx
 *.csv
 !sample_data/*.csv
+!sample_data/*.jsonl
 
 # PDF docs (generated)
 *.pdf

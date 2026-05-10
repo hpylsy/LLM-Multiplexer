@@ -110,6 +110,14 @@ CLIPROXY_BASE_URL = os.getenv("CLIPROXY_BASE_URL", "http://154.201.92.23")
 CLIPROXY_MANAGEMENT_BASE_URL = os.getenv("CLIPROXY_MANAGEMENT_BASE_URL", "http://154.201.92.23:8317")
 CLIPROXY_MANAGEMENT_KEY = os.getenv("CLIPROXY_MANAGEMENT_KEY", "")
 
+# --- Branding (customizable via .env) ---
+SITE_TITLE = os.getenv("SITE_TITLE", "AI中转站")
+SITE_SUBTITLE = os.getenv("SITE_SUBTITLE", "AI Relay Console")
+SITE_DESCRIPTION = os.getenv("SITE_DESCRIPTION", "面向团队成员统一提供大模型中转、调用统计与额度管理服务。")
+SITE_TEAM_NAME = os.getenv("SITE_TEAM_NAME", "")
+SITE_MOTTO = os.getenv("SITE_MOTTO", "")
+SITE_MOTTO_DESCRIPTION = os.getenv("SITE_MOTTO_DESCRIPTION", "")
+
 # --- Security settings (production) ---
 if not DEBUG:
     SECURE_BROWSER_XSS_FILTER = True

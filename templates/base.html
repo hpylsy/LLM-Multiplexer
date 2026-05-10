@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{% block title %}实验室大模型门户{% endblock %}</title>
+    <title>{% block title %}{{ SITE_TITLE }}{% endblock %}</title>
     <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
     <link rel="icon" type="image/png" sizes="32x32" href="/static/brand/favicon-32x32.png">
     <link rel="apple-touch-icon" sizes="180x180" href="/static/brand/apple-touch-icon.png">
@@ -19,8 +19,8 @@
         <a class="navbar-brand d-flex align-items-center gap-2" href="/">
             <span class="brand-mark"><img src="/static/brand/team-logo.png" alt="队标"></span>
             <span>
-                <span class="brand-title d-block">PIONEER战队AI中转站</span>
-                <span class="brand-subtitle d-none d-md-block">PIONEER AI Relay Console</span>
+                <span class="brand-title d-block">{{ SITE_TITLE }}</span>
+                <span class="brand-subtitle d-none d-md-block">{{ SITE_SUBTITLE }}</span>
             </span>
         </a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar" aria-expanded="false" aria-label="切换导航">
