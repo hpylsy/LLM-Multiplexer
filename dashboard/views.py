@@ -75,19 +75,18 @@ def _display_name_strict(display_name, username):
 
 
 def _get_filter_options():
-    """Get group and grade filter options (cached query)."""
+    """Get group and grade filter options from Profile (all registered, not just those with usage)."""
+    from users.models import Profile
     groups = sorted({
         group for group in
-        UsageLog.objects.exclude(user=None)
-        .exclude(user__profile__lab_group="")
-        .values_list("user__profile__lab_group", flat=True).distinct()
+        Profile.objects.exclude(lab_group="")
+        .values_list("lab_group", flat=True).distinct()
         if group in {"电控", "算法", "机械", "宣传"}
     })
     grades = sorted({
         grade for grade in
-        UsageLog.objects.exclude(user=None)
-        .exclude(user__profile__grade="")
-        .values_list("user__profile__grade", flat=True).distinct()
+        Profile.objects.exclude(grade="")
+        .values_list("grade", flat=True).distinct()
         if grade
     })
     return groups, grades
