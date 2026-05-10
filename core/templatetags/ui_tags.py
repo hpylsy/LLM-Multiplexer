@@ -6,7 +6,7 @@ register = template.Library()
 
 GROUP_EMOJI = {
     "电控": "⚡",
-    "算法": "🧠",
+    "算法": "💻",
     "机械": "⚙️",
     "宣传": "🎨",
 }
