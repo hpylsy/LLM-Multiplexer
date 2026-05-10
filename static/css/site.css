@@ -311,8 +311,6 @@ body.site-body.usage-page {
     background:
         linear-gradient(rgba(245,248,252,0.72), rgba(245,248,252,0.82)),
         url('/static/brand/dashboard-background.jpg') center/cover fixed no-repeat;
-    border-radius: 28px;
-    padding: 0.5rem;
 }
 
 .quota-page .page-hero,
