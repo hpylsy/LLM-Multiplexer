@@ -56,21 +56,13 @@
             </div>
             <div class="token-trend-frame"><canvas id="trendChart" height="130"></canvas></div>
             <div class="dashboard-model-usage">
-                <span class="dashboard-model-usage-label">模型使用量</span>
+                <span class="dashboard-model-usage-label">模型使用量（全队）</span>
                 <div class="model-chip-group">
-                    {% if personal_summary %}
-                        {% for item in personal_summary.models %}
-                            <span class="model-chip">{{ item.model_name }} · {{ item.total_tokens|token_unit }}</span>
-                        {% empty %}
-                            <span class="text-muted">当前时间范围内暂无个人使用记录</span>
-                        {% endfor %}
-                    {% else %}
-                        {% for item in dashboard.model_rank %}
-                            <span class="model-chip">{{ item.model_name }} · {{ item.total_tokens|token_unit }}</span>
-                        {% empty %}
-                            <span class="text-muted">暂无模型消耗数据</span>
-                        {% endfor %}
-                    {% endif %}
+                    {% for item in dashboard.model_rank %}
+                        <span class="model-chip">{{ item.model_name }} · {{ item.total_tokens|token_unit }}</span>
+                    {% empty %}
+                        <span class="text-muted">暂无模型消耗数据</span>
+                    {% endfor %}
                 </div>
             </div>
         </div></div>
