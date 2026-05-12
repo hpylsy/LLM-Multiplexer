@@ -1,4 +1,4 @@
-# AI Relay Portal（AI 中转站门户）
+# LLM Multiplexer（大模型多路复用管理平台）
 
 一个开箱即用的 **大模型 API 中转站管理门户**，为团队提供统一的 API 密钥管理、使用量统计、成员额度管控和可视化仪表盘。
 
@@ -65,7 +65,7 @@
 
 ```bash
 # 1. 克隆仓库
-git clone https://github.com/hpylsy/pioneer-portal.git
+git clone https://github.com/hpylsy/LLM-Multiplexer.git
 cd pioneer-portal
 
 # 2. 创建虚拟环境
@@ -103,7 +103,7 @@ gunicorn lab_portal.wsgi:application --bind 127.0.0.1:8002 --workers 2 --timeout
 
 ```bash
 # 1. 克隆仓库
-git clone https://github.com/hpylsy/pioneer-portal.git
+git clone https://github.com/hpylsy/LLM-Multiplexer.git
 cd pioneer-portal
 
 # 2. 配置
