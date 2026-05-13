@@ -237,11 +237,12 @@ def _fetch_kiro_quota(auth_index):
     return resp.json()
 
 
-@admin_required
+@login_required
 def admin_credentials(request):
     """Display all CPAP auth credentials grouped by provider."""
-    from django.http import JsonResponse
     from collections import defaultdict
+    from datetime import timedelta
+    from django.utils import timezone as tz
 
     try:
         files = _fetch_auth_files()
@@ -250,11 +251,12 @@ def admin_credentials(request):
         from django.contrib import messages
         messages.error(request, f"获取凭证失败: {e}")
 
+    now = tz.now()
+
     # Group by provider
     grouped = defaultdict(list)
     for f in files:
         provider = f.get("provider", "unknown")
-        # Extract useful info
         credential = {
             "auth_index": f.get("auth_index", ""),
             "email": f.get("email", f.get("account", "")),
@@ -265,11 +267,85 @@ def admin_credentials(request):
             "recent_requests": f.get("recent_requests", []),
             "kiro_quota": f.get("kiro_quota"),
         }
-        # Codex: extract plan info
-        id_token = f.get("id_token", {})
+        # Codex: extract plan info and calculate remaining subscription days
+        id_token = f.get("id_token") or {}
         if id_token:
             credential["plan_type"] = id_token.get("plan_type", "")
-            credential["subscription_until"] = id_token.get("chatgpt_subscription_active_until", "")
+            sub_until = id_token.get("chatgpt_subscription_active_until", "")
+            credential["subscription_until"] = sub_until
+            if sub_until:
+                from django.utils.dateparse import parse_datetime as pd
+                end = pd(sub_until)
+                if end:
+                    days_left = (end - now).days
+                    credential["days_left"] = max(days_left, 0)
+
+        # Calculate 5h and weekly usage from recent_requests
+        recent = f.get("recent_requests") or []
+        # Each slot is 10 min, 5h = 30 slots, weekly ~= all available slots
+        five_h_slots = recent[-30:] if len(recent) >= 30 else recent
+        weekly_slots = recent
+
+        five_h_success = sum(s.get("success", 0) for s in five_h_slots)
+        five_h_failed = sum(s.get("failed", 0) for s in five_h_slots)
+        weekly_success = sum(s.get("success", 0) for s in weekly_slots)
+        weekly_failed = sum(s.get("failed", 0) for s in weekly_slots)
+
+        credential["five_h_total"] = five_h_success + five_h_failed
+        credential["five_h_success"] = five_h_success
+        credential["five_h_failed"] = five_h_failed
+        credential["weekly_total"] = weekly_success + weekly_failed
+        credential["weekly_success"] = weekly_success
+        credential["weekly_failed"] = weekly_failed
+
+        # Progress bar percentages (estimate max capacity)
+        # Codex Plus: ~50 req/5h, ~500 req/week; Team: ~100/5h, ~1000/week
+        plan = (id_token.get("plan_type", "") if id_token else "").lower()
+        five_h_cap = 100 if plan == "team" else 50
+        weekly_cap = 1000 if plan == "team" else 500
+        if provider == "kiro":
+            five_h_cap, weekly_cap = 30, 200
+        elif provider in ("gemini-cli", "antigravity"):
+            five_h_cap, weekly_cap = 80, 600
+
+        credential["five_h_pct"] = min(round(five_h_success / five_h_cap * 100), 100) if five_h_cap else 0
+        credential["five_h_fail_pct"] = min(round(five_h_failed / five_h_cap * 100), 100 - credential["five_h_pct"]) if five_h_cap else 0
+        credential["weekly_pct"] = min(round(weekly_success / weekly_cap * 100), 100) if weekly_cap else 0
+        credential["weekly_fail_pct"] = min(round(weekly_failed / weekly_cap * 100), 100 - credential["weekly_pct"]) if weekly_cap else 0
+
+        # Labels: show time info from first/last slot
+        if five_h_slots:
+            credential["five_h_label"] = f"{five_h_success + five_h_failed}req ({five_h_slots[0].get('time', '')})"
+        else:
+            credential["five_h_label"] = "0req"
+        if weekly_slots:
+            credential["weekly_label"] = f"{weekly_success + weekly_failed}req ({weekly_slots[-1].get('time', '')})"
+        else:
+            credential["weekly_label"] = "0req"
+
+        # Email masking for non-admin users
+        email = credential["email"]
+        if email and not request.user.is_staff:
+            parts = email.split("@")
+            if len(parts) == 2:
+                name = parts[0]
+                masked_name = name[:3] + "***" if len(name) > 3 else name[0] + "***"
+                credential["email_masked"] = f"{masked_name}@{parts[1]}"
+            else:
+                credential["email_masked"] = email[:4] + "***"
+        else:
+            credential["email_masked"] = email
+
+        # Determine health status
+        if f.get("disabled"):
+            credential["health"] = "disabled"
+        elif f.get("failed", 0) > 0 and f.get("success", 0) == 0:
+            credential["health"] = "error"
+        elif f.get("failed", 0) > 0:
+            credential["health"] = "warning"
+        else:
+            credential["health"] = "healthy"
+
         grouped[provider].append(credential)
 
     # Sort providers
@@ -287,7 +363,7 @@ def admin_credentials(request):
     })
 
 
-@admin_required
+@login_required
 def admin_credentials_refresh(request, auth_index):
     """AJAX endpoint to refresh Kiro quota for a credential."""
     from django.http import JsonResponse
