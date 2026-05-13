@@ -31,6 +31,7 @@ INSTALLED_APPS = [
     "usage",
     "dashboard",
     "quota",
+    "github_activity",
 ]
 
 AUTH_PROFILE_MODULE = "users.Profile"

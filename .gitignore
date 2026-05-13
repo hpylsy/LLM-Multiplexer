@@ -43,3 +43,4 @@ postgres_data/
 
 # PDF docs (generated)
 *.pdf
+hugo.tar.gz

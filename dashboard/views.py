@@ -206,3 +206,95 @@ def model_pricing_admin(request):
         form = ModelPricingForm()
     pricings = ModelPricing.objects.all()
     return render(request, "dashboard/model_pricing_admin.html", {"form": form, "pricings": pricings})
+
+
+def _fetch_auth_files():
+    """Fetch auth files from CPAP management API."""
+    import requests as http_requests
+    from urllib.parse import urljoin
+    headers = {"Authorization": f"Bearer {settings.CLIPROXY_MANAGEMENT_KEY}"}
+    resp = http_requests.get(
+        urljoin(settings.CLIPROXY_MANAGEMENT_BASE_URL, "/v0/management/auth-files"),
+        headers=headers,
+        timeout=10,
+    )
+    resp.raise_for_status()
+    data = resp.json()
+    return data.get("files", []) if isinstance(data, dict) else data
+
+
+def _fetch_kiro_quota(auth_index):
+    """Fetch Kiro quota for a specific auth index."""
+    import requests as http_requests
+    from urllib.parse import urljoin
+    headers = {"Authorization": f"Bearer {settings.CLIPROXY_MANAGEMENT_KEY}"}
+    resp = http_requests.get(
+        urljoin(settings.CLIPROXY_MANAGEMENT_BASE_URL, f"/v0/management/kiro-quota?auth_index={auth_index}"),
+        headers=headers,
+        timeout=30,
+    )
+    resp.raise_for_status()
+    return resp.json()
+
+
+@admin_required
+def admin_credentials(request):
+    """Display all CPAP auth credentials grouped by provider."""
+    from django.http import JsonResponse
+    from collections import defaultdict
+
+    try:
+        files = _fetch_auth_files()
+    except Exception as e:
+        files = []
+        from django.contrib import messages
+        messages.error(request, f"获取凭证失败: {e}")
+
+    # Group by provider
+    grouped = defaultdict(list)
+    for f in files:
+        provider = f.get("provider", "unknown")
+        # Extract useful info
+        credential = {
+            "auth_index": f.get("auth_index", ""),
+            "email": f.get("email", f.get("account", "")),
+            "provider": provider,
+            "disabled": f.get("disabled", False),
+            "failed": f.get("failed", 0),
+            "success": f.get("success", 0),
+            "recent_requests": f.get("recent_requests", []),
+            "kiro_quota": f.get("kiro_quota"),
+        }
+        # Codex: extract plan info
+        id_token = f.get("id_token", {})
+        if id_token:
+            credential["plan_type"] = id_token.get("plan_type", "")
+            credential["subscription_until"] = id_token.get("chatgpt_subscription_active_until", "")
+        grouped[provider].append(credential)
+
+    # Sort providers
+    provider_order = ["codex", "kiro", "gemini-cli", "antigravity"]
+    sorted_groups = []
+    for p in provider_order:
+        if p in grouped:
+            sorted_groups.append((p, grouped.pop(p)))
+    for p, creds in sorted(grouped.items()):
+        sorted_groups.append((p, creds))
+
+    return render(request, "dashboard/credentials.html", {
+        "credential_groups": sorted_groups,
+        "total_count": len(files),
+    })
+
+
+@admin_required
+def admin_credentials_refresh(request, auth_index):
+    """AJAX endpoint to refresh Kiro quota for a credential."""
+    from django.http import JsonResponse
+    if request.method != "POST":
+        return JsonResponse({"ok": False, "error": "POST required"}, status=405)
+    try:
+        quota = _fetch_kiro_quota(auth_index)
+        return JsonResponse({"ok": True, "quota": quota})
+    except Exception as e:
+        return JsonResponse({"ok": False, "error": str(e)}, status=500)

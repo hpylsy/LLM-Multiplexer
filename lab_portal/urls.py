@@ -10,4 +10,5 @@ urlpatterns = [
     path("usage/", include("usage.urls")),
     path("dashboard/", include("dashboard.urls")),
     path("quota/", include("quota.urls")),
+    path("posts/", include("github_activity.urls")),
 ]
