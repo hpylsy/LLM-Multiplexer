@@ -1,0 +1,235 @@
+{% extends 'base.html' %}
+{% load ui_tags %}
+
+{% block title %}请求事件{% endblock %}
+
+{% block content %}
+<section class="page-hero mb-4">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+        <div>
+            <span class="eyebrow-badge mb-2 d-inline-flex">Request Events</span>
+            <h3 class="mb-1">请求事件</h3>
+            <p class="text-muted mb-0">实时展示每个 API 请求的详细信息，包括延迟、Token 明细等。</p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge text-bg-primary rounded-pill px-3 py-2">共 {{ page_obj.paginator.count }} 条</span>
+            <button class="btn btn-sm btn-soft" id="syncBtn" onclick="syncEvents()"><i class="bi bi-arrow-repeat me-1"></i>同步最新</button>
+        </div>
+    </div>
+</section>
+
+<!-- Filters -->
+<div class="card panel-card mb-4"><div class="card-body py-3">
+    <form method="get" class="row g-2 align-items-end">
+        <div class="col-auto">
+            <label class="form-label small text-muted mb-1">时间范围</label>
+            <select name="range" class="form-select form-select-sm" onchange="this.form.submit()">
+                <option value="today" {% if range_name == "today" %}selected{% endif %}>今天</option>
+                <option value="last_hour" {% if range_name == "last_hour" %}selected{% endif %}>最近1小时</option>
+                <option value="last_7_days" {% if range_name == "last_7_days" %}selected{% endif %}>最近7天</option>
+                <option value="last_30_days" {% if range_name == "last_30_days" %}selected{% endif %}>最近30天</option>
+                <option value="all" {% if range_name == "all" %}selected{% endif %}>全部</option>
+            </select>
+        </div>
+        <div class="col-auto">
+            <label class="form-label small text-muted mb-1">Provider</label>
+            <select name="provider" class="form-select form-select-sm" onchange="this.form.submit()">
+                <option value="">全部</option>
+                {% for p in providers %}
+                <option value="{{ p }}" {% if provider_filter == p %}selected{% endif %}>{{ p }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-auto">
+            <label class="form-label small text-muted mb-1">模型</label>
+            <select name="model" class="form-select form-select-sm" onchange="this.form.submit()">
+                <option value="">全部</option>
+                {% for m in models_list %}
+                <option value="{{ m }}" {% if model_filter == m %}selected{% endif %}>{{ m }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-auto">
+            <button type="submit" class="btn btn-sm btn-primary">筛选</button>
+            <a href="{% url 'request-events' %}" class="btn btn-sm btn-outline-secondary ms-1">重置</a>
+        </div>
+    </form>
+</div></div>
+
+<!-- Events Table -->
+<div class="card panel-card"><div class="card-body p-0">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0 events-table">
+            <thead>
+                <tr>
+                    <th style="min-width:140px;">时间</th>
+                    <th>用户</th>
+                    <th>令牌</th>
+                    <th>Provider</th>
+                    <th>模型</th>
+                    <th class="text-end">延迟</th>
+                    <th class="text-end">输入</th>
+                    <th class="text-end">输出</th>
+                    <th class="text-end">缓存</th>
+                    <th class="text-end">推理</th>
+                    <th class="text-center">状态</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for log in page_obj %}
+            <tr>
+                <td class="text-nowrap small">{{ log.request_time|date:"m-d H:i:s" }}</td>
+                <td class="text-truncate" style="max-width:140px;" title="{{ log.user_identifier }}">
+                    {% if is_admin %}
+                        {{ log.user_identifier|default:"-" }}
+                    {% else %}
+                        {% if log.user_identifier %}{{ log.user_identifier|make_list|first }}***{% else %}-{% endif %}
+                    {% endif %}
+                </td>
+                <td class="text-truncate small" style="max-width:120px;">
+                    {% if is_admin %}
+                        {{ log.api_key_identifier|default:"-"|truncatechars:16 }}
+                    {% else %}
+                        {% if log.api_key_identifier %}sk-***{{ log.api_key_identifier|slice:"-4:" }}{% else %}-{% endif %}
+                    {% endif %}
+                </td>
+                <td><span class="badge text-bg-light border">{{ log.provider|default:"-" }}</span></td>
+                <td class="small">{{ log.model_name }}</td>
+                <td class="text-end text-nowrap">
+                    {% if log.latency_ms > 0 %}
+                    <span class="badge latency-badge {% if log.latency_ms < 3000 %}latency-good{% elif log.latency_ms < 10000 %}latency-warn{% else %}latency-bad{% endif %}">
+                        {{ log.latency_ms }}ms
+                    </span>
+                    {% else %}-{% endif %}
+                </td>
+                <td class="text-end small">{{ log.prompt_tokens }}</td>
+                <td class="text-end small">{{ log.completion_tokens }}</td>
+                <td class="text-end small">{{ log.cached_tokens|default:0 }}</td>
+                <td class="text-end small">{{ log.reasoning_tokens|default:0 }}</td>
+                <td class="text-center">
+                    {% if log.is_error %}
+                    <span class="badge text-bg-danger">失败</span>
+                    {% else %}
+                    <span class="badge text-bg-success">成功</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="11" class="text-center text-muted py-5">
+                    <i class="bi bi-inbox" style="font-size:2rem;"></i>
+                    <p class="mt-2 mb-0">暂无请求事件数据</p>
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if page_obj.has_other_pages %}
+    <div class="d-flex justify-content-between align-items-center px-3 py-3 border-top">
+        <small class="text-muted">第 {{ page_obj.number }} / {{ page_obj.paginator.num_pages }} 页</small>
+        <nav>
+            <ul class="pagination pagination-sm mb-0">
+                {% if page_obj.has_previous %}
+                <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}&range={{ range_name }}&provider={{ provider_filter }}&model={{ model_filter }}">上一页</a></li>
+                {% endif %}
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                    <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                    {% elif num > page_obj.number|add:"-3" and num < page_obj.number|add:"3" %}
+                    <li class="page-item"><a class="page-link" href="?page={{ num }}&range={{ range_name }}&provider={{ provider_filter }}&model={{ model_filter }}">{{ num }}</a></li>
+                    {% endif %}
+                {% endfor %}
+                {% if page_obj.has_next %}
+                <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}&range={{ range_name }}&provider={{ provider_filter }}&model={{ model_filter }}">下一页</a></li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function syncEvents() {
+    var btn = document.getElementById('syncBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="bi bi-arrow-repeat spin-animation me-1"></i>同步中...';
+
+    fetch('{% url "request-events-sync" %}', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {'X-CSRFToken': getCookie('csrftoken')}
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-arrow-repeat me-1"></i>同步最新';
+        if (data.ok) {
+            var msg = '同步完成：导入 ' + (data.imported || 0) + ' 条，跳过 ' + (data.skipped || 0) + ' 条';
+            showToast(msg, 'success');
+            if (data.imported > 0) {
+                setTimeout(function() { location.reload(); }, 800);
+            }
+        } else {
+            showToast('同步失败: ' + (data.error || '未知错误'), 'danger');
+        }
+    })
+    .catch(function(err) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-arrow-repeat me-1"></i>同步最新';
+        showToast('网络错误', 'danger');
+    });
+}
+
+function showToast(msg, type) {
+    var container = document.querySelector('.container');
+    var alert = document.createElement('div');
+    alert.className = 'alert alert-' + type + ' alert-dismissible fade show mt-2 shadow-sm border-0';
+    alert.innerHTML = msg + '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>';
+    container.insertBefore(alert, container.firstChild);
+    setTimeout(function() { alert.remove(); }, 5000);
+}
+
+function getCookie(name) {
+    var value = '; ' + document.cookie;
+    var parts = value.split('; ' + name + '=');
+    if (parts.length === 2) return parts.pop().split(';').shift();
+    return '';
+}
+
+// Auto-sync every 30 seconds
+(function() {
+    var syncInterval = 30000;
+    var timer = null;
+    function doSync() {
+        fetch('{% url "request-events-sync" %}', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {'X-CSRFToken': getCookie('csrftoken')}
+        }).catch(function(){});
+    }
+    if (document.visibilityState === 'visible') { timer = setInterval(doSync, syncInterval); }
+    document.addEventListener('visibilitychange', function() {
+        if (document.visibilityState === 'visible') {
+            doSync();
+            if (!timer) timer = setInterval(doSync, syncInterval);
+        } else {
+            if (timer) { clearInterval(timer); timer = null; }
+        }
+    });
+})();
+</script>
+<style>
+.spin-animation { animation: spin 1s linear infinite; display: inline-block; }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.events-table th { font-size: 0.78rem; font-weight: 600; color: #64748b; border-bottom: 2px solid #e2e8f0; padding: 0.6rem 0.5rem; }
+.events-table td { font-size: 0.82rem; padding: 0.5rem; border-bottom: 1px solid #f1f5f9; }
+.latency-badge { font-size: 0.72rem; font-weight: 500; padding: 0.25em 0.6em; }
+.latency-good { background-color: #dcfce7 !important; color: #166534 !important; }
+.latency-warn { background-color: #fef3c7 !important; color: #92400e !important; }
+.latency-bad { background-color: #fee2e2 !important; color: #991b1b !important; }
+</style>
+{% endblock %}

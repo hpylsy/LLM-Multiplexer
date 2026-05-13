@@ -266,6 +266,121 @@ def auto_sync_cliproxy_usage_records(force=False):
         SYNC_LOCK.release()
 
 
+def fetch_usage_queue_events(count=100):
+    """Consume real-time events from CPAP /v0/management/usage-queue endpoint."""
+    headers = {"Authorization": f"Bearer {settings.CLIPROXY_MANAGEMENT_KEY}"}
+    response = requests.get(
+        urljoin(settings.CLIPROXY_MANAGEMENT_BASE_URL, f"/v0/management/usage-queue?count={count}"),
+        headers=headers,
+        timeout=30,
+    )
+    response.raise_for_status()
+    return response.json()
+
+
+def normalize_queue_event(event):
+    """Normalize a single usage-queue event into UsageLog-compatible dict."""
+    tokens = event.get("tokens") or {}
+    input_tokens = int(tokens.get("input_tokens") or 0)
+    output_tokens = int(tokens.get("output_tokens") or 0)
+    cached_tokens = int(tokens.get("cached_tokens") or 0)
+    reasoning_tokens = int(tokens.get("reasoning_tokens") or 0)
+    total_tokens = int(tokens.get("total_tokens") or input_tokens + output_tokens)
+    model_name = str(event.get("model") or event.get("alias") or "unknown").strip()
+    failed = bool(event.get("failed"))
+
+    estimated_cost = calculate_estimated_cost(model_name, input_tokens, output_tokens, event)
+
+    return {
+        "request_id": str(event.get("request_id") or "").strip(),
+        "user_identifier": str(event.get("source") or "").strip(),
+        "api_key_identifier": str(event.get("api_key") or "").strip(),
+        "model_name": model_name,
+        "prompt_tokens": input_tokens,
+        "completion_tokens": output_tokens,
+        "total_tokens": total_tokens,
+        "estimated_cost": estimated_cost,
+        "status_code": 500 if failed else 200,
+        "is_error": failed,
+        "error_message": "",
+        "request_time": parse_request_time(event.get("timestamp")),
+        "raw_payload": event,
+        "latency_ms": int(event.get("latency_ms") or 0),
+        "cached_tokens": cached_tokens,
+        "reasoning_tokens": reasoning_tokens,
+        "provider": str(event.get("provider") or "").strip(),
+    }
+
+
+QUEUE_SYNC_LOCK = threading.Lock()
+LAST_QUEUE_SYNC_AT = 0.0
+QUEUE_SYNC_INTERVAL_SECONDS = 30
+
+
+def sync_usage_queue_events(count=100):
+    """Fetch and persist events from the usage-queue, deduplicating by request_id."""
+    payload = fetch_usage_queue_events(count)
+
+    # The endpoint may return a list or a dict with a list inside
+    if isinstance(payload, list):
+        events = payload
+    elif isinstance(payload, dict):
+        events = payload.get("items") or payload.get("data") or payload.get("messages") or []
+    else:
+        events = []
+
+    if not events:
+        return 0, 0
+
+    # Extract request_ids for batch dedup check
+    raw_ids = [str(e.get("request_id") or "").strip() for e in events if e.get("request_id")]
+    existing_ids = set()
+    for i in range(0, len(raw_ids), 500):
+        chunk = raw_ids[i:i + 500]
+        existing_ids.update(
+            UsageLog.objects.filter(request_id__in=chunk).values_list("request_id", flat=True)
+        )
+
+    imported = 0
+    skipped = 0
+    for event in events:
+        rid = str(event.get("request_id") or "").strip()
+        if not rid:
+            skipped += 1
+            continue
+        if rid in existing_ids:
+            skipped += 1
+            continue
+
+        data = normalize_queue_event(event)
+        user, api_key = resolve_related_objects(data)
+        UsageLog.objects.create(**data, user=user, api_key=api_key)
+        existing_ids.add(rid)
+        imported += 1
+
+    return imported, skipped
+
+
+def auto_sync_usage_queue(force=False):
+    """Auto-sync usage queue events with rate limiting (every 30s)."""
+    global LAST_QUEUE_SYNC_AT
+    now = time.time()
+    if not force and now - LAST_QUEUE_SYNC_AT < QUEUE_SYNC_INTERVAL_SECONDS:
+        return None, False
+
+    if not QUEUE_SYNC_LOCK.acquire(blocking=False):
+        return None, False
+
+    try:
+        imported, skipped = sync_usage_queue_events()
+        LAST_QUEUE_SYNC_AT = time.time()
+        return {"imported": imported, "skipped": skipped}, True
+    except Exception:
+        return None, False
+    finally:
+        QUEUE_SYNC_LOCK.release()
+
+
 def load_records_from_file(uploaded_file):
     name = uploaded_file.name.lower()
     content = uploaded_file.read().decode("utf-8")

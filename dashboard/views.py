@@ -423,8 +423,12 @@ def admin_credentials(request):
     sorted_groups = []
     for p in provider_order:
         if p in grouped:
-            sorted_groups.append((p, grouped.pop(p)))
+            # Sort within group: enabled first, then disabled
+            creds = grouped.pop(p)
+            creds.sort(key=lambda c: (c["disabled"], -(c.get("five_h_total", 0) + c.get("weekly_total", 0))))
+            sorted_groups.append((p, creds))
     for p, creds in sorted(grouped.items()):
+        creds.sort(key=lambda c: (c["disabled"], -(c.get("five_h_total", 0) + c.get("weekly_total", 0))))
         sorted_groups.append((p, creds))
 
     return render(request, "dashboard/credentials.html", {

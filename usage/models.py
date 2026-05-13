@@ -20,6 +20,12 @@ class UsageLog(models.Model):
     raw_payload = models.JSONField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    # Extended fields for request events (from usage-queue)
+    latency_ms = models.PositiveIntegerField(default=0)
+    cached_tokens = models.PositiveIntegerField(default=0)
+    reasoning_tokens = models.PositiveIntegerField(default=0)
+    provider = models.CharField(max_length=50, blank=True, db_index=True)
+
     class Meta:
         ordering = ["-request_time"]
         indexes = [

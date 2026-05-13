@@ -33,6 +33,7 @@
                 <li class="nav-item"><a class="nav-link {% if current_url == 'public-dashboard' %}active{% endif %}" href="/dashboard/public/"><i class="bi bi-bar-chart-line me-1"></i>公开面板</a></li>
                 {% if user.is_authenticated %}
                     <li class="nav-item"><a class="nav-link {% if current_url == 'admin-credentials' %}active{% endif %}" href="/dashboard/admin/credentials/"><i class="bi bi-key me-1"></i>凭证状态</a></li>
+                    <li class="nav-item"><a class="nav-link {% if current_url == 'request-events' %}active{% endif %}" href="/usage/events/"><i class="bi bi-activity me-1"></i>请求事件</a></li>
                     {% if not user.is_staff and user.profile.role != 'admin' %}
                     <li class="nav-item"><a class="nav-link {% if current_url == 'my-usage-logs' %}active{% endif %}" href="/usage/my/"><i class="bi bi-journal-text me-1"></i>使用记录</a></li>
                     <li class="nav-item"><a class="nav-link {% if current_url == 'my-quota' %}active{% endif %}" href="/quota/my/"><i class="bi bi-speedometer2 me-1"></i>我的额度</a></li>

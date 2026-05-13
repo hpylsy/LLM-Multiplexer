@@ -8,4 +8,6 @@ urlpatterns = [
     path("import/", views.import_usage_logs_view, name="import-usage-logs"),
     path("sync/status/", views.auto_sync_status, name="auto-sync-status"),
     path("sync/trigger/", views.sync_trigger, name="sync-trigger"),
+    path("events/", views.request_events, name="request-events"),
+    path("events/sync/", views.request_events_sync, name="request-events-sync"),
 ]
