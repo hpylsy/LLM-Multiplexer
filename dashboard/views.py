@@ -399,36 +399,7 @@ def admin_credentials(request):
         weekly_failed = sum(s.get("failed", 0) for s in weekly_slots)
 
         credential["five_h_total"] = five_h_success + five_h_failed
-        credential["five_h_success"] = five_h_success
-        credential["five_h_failed"] = five_h_failed
         credential["weekly_total"] = weekly_success + weekly_failed
-        credential["weekly_success"] = weekly_success
-        credential["weekly_failed"] = weekly_failed
-
-        # Progress bar percentages (estimate max capacity)
-        # Codex Plus: ~50 req/5h, ~500 req/week; Team: ~100/5h, ~1000/week
-        plan = (id_token.get("plan_type", "") if id_token else "").lower()
-        five_h_cap = 100 if plan == "team" else 50
-        weekly_cap = 1000 if plan == "team" else 500
-        if provider == "kiro":
-            five_h_cap, weekly_cap = 30, 200
-        elif provider in ("gemini-cli", "antigravity"):
-            five_h_cap, weekly_cap = 80, 600
-
-        credential["five_h_pct"] = min(round(five_h_success / five_h_cap * 100), 100) if five_h_cap else 0
-        credential["five_h_fail_pct"] = min(round(five_h_failed / five_h_cap * 100), 100 - credential["five_h_pct"]) if five_h_cap else 0
-        credential["weekly_pct"] = min(round(weekly_success / weekly_cap * 100), 100) if weekly_cap else 0
-        credential["weekly_fail_pct"] = min(round(weekly_failed / weekly_cap * 100), 100 - credential["weekly_pct"]) if weekly_cap else 0
-
-        # Labels: show time info from first/last slot
-        if five_h_slots:
-            credential["five_h_label"] = f"{five_h_success + five_h_failed}req ({five_h_slots[0].get('time', '')})"
-        else:
-            credential["five_h_label"] = "0req"
-        if weekly_slots:
-            credential["weekly_label"] = f"{weekly_success + weekly_failed}req ({weekly_slots[-1].get('time', '')})"
-        else:
-            credential["weekly_label"] = "0req"
 
         # Email masking for non-admin users
         email = credential["email"]
