@@ -243,7 +243,7 @@ def _cpap_api_call(auth_index, method, url, extra_headers=None):
     from urllib.parse import urljoin
     headers = {"Authorization": f"Bearer {settings.CLIPROXY_MANAGEMENT_KEY}"}
     payload = {
-        "auth_index": auth_index,
+        "authIndex": auth_index,
         "method": method,
         "url": url,
     }
@@ -264,24 +264,29 @@ QUOTA_CONFIGS = {
     "codex": {
         "method": "GET",
         "url": "https://chatgpt.com/backend-api/wham/usage",
-        "headers": {"Content-Type": "application/json", "User-Agent": "codex_cli_rs/0.76.0 (Debian 13.0.0; x86_64) WindowsTerminal"},
+        "headers": {"Authorization": "Bearer $TOKEN$", "Content-Type": "application/json", "User-Agent": "codex_cli_rs/0.76.0 (Debian 13.0.0; x86_64) WindowsTerminal"},
     },
     "gemini-cli": {
         "method": "POST",
         "url": "https://cloudcode-pa.googleapis.com/v1internal:retrieveUserQuota",
-        "headers": {"Content-Type": "application/json"},
+        "headers": {"Authorization": "Bearer $TOKEN$", "Content-Type": "application/json"},
     },
     "antigravity": {
         "method": "POST",
         "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:fetchAvailableModels",
-        "headers": {"Content-Type": "application/json", "User-Agent": "antigravity/1.11.5 windows/amd64"},
+        "headers": {"Authorization": "Bearer $TOKEN$", "Content-Type": "application/json", "User-Agent": "antigravity/1.11.5 windows/amd64"},
     },
 }
 
 
 def _parse_codex_quota(data):
     """Parse Codex quota response into normalized format."""
-    body = data.get("body", "")
+    # CPAP returns: {"status_code": 200, "body": "{...json string...}", "header": {...}}
+    status_code = data.get("status_code", data.get("statusCode", 0))
+    if status_code != 200:
+        return None
+
+    body = data.get("body", data.get("bodyText", ""))
     if isinstance(body, str):
         import json as json_mod
         try:
@@ -303,19 +308,6 @@ def _parse_codex_quota(data):
                 "reset_after_seconds": window.get("reset_after_seconds", window.get("resetAfterSeconds", 0)),
                 "limit_reached": window.get("limit_reached", window.get("limitReached", False)),
             })
-
-    # Also check additional rate limits
-    for item in body.get("additional_rate_limits", body.get("additionalRateLimits", [])):
-        rl = item.get("rate_limit", item.get("rateLimit", {}))
-        for key, label in [("primary_window", "5h"), ("secondary_window", "Weekly")]:
-            window = rl.get(key, rl.get(key.replace("_", ""), None))
-            if window:
-                result["windows"].append({
-                    "label": f"{item.get('limit_name', item.get('limitName', ''))}/{label}",
-                    "used_percent": window.get("used_percent", window.get("usedPercent", 0)),
-                    "reset_after_seconds": window.get("reset_after_seconds", window.get("resetAfterSeconds", 0)),
-                    "limit_reached": window.get("limit_reached", window.get("limitReached", False)),
-                })
 
     return result if result["windows"] else None
 
