@@ -44,3 +44,10 @@ postgres_data/
 # PDF docs (generated)
 *.pdf
 hugo.tar.gz
+github_activity/
+.kiro/
+custom.css
+hugo_config.toml
+layouts_home*.html
+sync_github*.py
+github_index.md
