@@ -237,6 +237,113 @@ def _fetch_kiro_quota(auth_index):
     return resp.json()
 
 
+def _cpap_api_call(auth_index, method, url, extra_headers=None):
+    """Call an external API through CPAP using a specific credential's token."""
+    import requests as http_requests
+    from urllib.parse import urljoin
+    headers = {"Authorization": f"Bearer {settings.CLIPROXY_MANAGEMENT_KEY}"}
+    payload = {
+        "auth_index": auth_index,
+        "method": method,
+        "url": url,
+    }
+    if extra_headers:
+        payload["header"] = extra_headers
+    resp = http_requests.post(
+        urljoin(settings.CLIPROXY_MANAGEMENT_BASE_URL, "/v0/management/api-call"),
+        headers=headers,
+        json=payload,
+        timeout=20,
+    )
+    resp.raise_for_status()
+    return resp.json()
+
+
+# Quota API configs per provider (same as cpa-usage-keeper)
+QUOTA_CONFIGS = {
+    "codex": {
+        "method": "GET",
+        "url": "https://chatgpt.com/backend-api/wham/usage",
+        "headers": {"Content-Type": "application/json", "User-Agent": "codex_cli_rs/0.76.0 (Debian 13.0.0; x86_64) WindowsTerminal"},
+    },
+    "gemini-cli": {
+        "method": "POST",
+        "url": "https://cloudcode-pa.googleapis.com/v1internal:retrieveUserQuota",
+        "headers": {"Content-Type": "application/json"},
+    },
+    "antigravity": {
+        "method": "POST",
+        "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:fetchAvailableModels",
+        "headers": {"Content-Type": "application/json", "User-Agent": "antigravity/1.11.5 windows/amd64"},
+    },
+}
+
+
+def _parse_codex_quota(data):
+    """Parse Codex quota response into normalized format."""
+    body = data.get("body", "")
+    if isinstance(body, str):
+        import json as json_mod
+        try:
+            body = json_mod.loads(body)
+        except (ValueError, TypeError):
+            return None
+    if not isinstance(body, dict):
+        return None
+
+    rate_limit = body.get("rate_limit") or body.get("rateLimit") or {}
+    result = {"provider": "codex", "plan_type": body.get("plan_type", ""), "windows": []}
+
+    for key, label in [("primary_window", "5h"), ("secondary_window", "Weekly"), ("primaryWindow", "5h"), ("secondaryWindow", "Weekly")]:
+        window = rate_limit.get(key)
+        if window:
+            result["windows"].append({
+                "label": label,
+                "used_percent": window.get("used_percent", window.get("usedPercent", 0)),
+                "reset_after_seconds": window.get("reset_after_seconds", window.get("resetAfterSeconds", 0)),
+                "limit_reached": window.get("limit_reached", window.get("limitReached", False)),
+            })
+
+    # Also check additional rate limits
+    for item in body.get("additional_rate_limits", body.get("additionalRateLimits", [])):
+        rl = item.get("rate_limit", item.get("rateLimit", {}))
+        for key, label in [("primary_window", "5h"), ("secondary_window", "Weekly")]:
+            window = rl.get(key, rl.get(key.replace("_", ""), None))
+            if window:
+                result["windows"].append({
+                    "label": f"{item.get('limit_name', item.get('limitName', ''))}/{label}",
+                    "used_percent": window.get("used_percent", window.get("usedPercent", 0)),
+                    "reset_after_seconds": window.get("reset_after_seconds", window.get("resetAfterSeconds", 0)),
+                    "limit_reached": window.get("limit_reached", window.get("limitReached", False)),
+                })
+
+    return result if result["windows"] else None
+
+
+def _parse_gemini_quota(data):
+    """Parse Gemini CLI quota response."""
+    body = data.get("body", "")
+    if isinstance(body, str):
+        import json as json_mod
+        try:
+            body = json_mod.loads(body)
+        except (ValueError, TypeError):
+            return None
+    if not isinstance(body, dict):
+        return None
+
+    result = {"provider": "gemini-cli", "windows": []}
+    for bucket in body.get("buckets", []):
+        remaining = bucket.get("remainingFraction", bucket.get("remaining_fraction", 0))
+        result["windows"].append({
+            "label": bucket.get("modelId", bucket.get("model_id", "unknown")),
+            "used_percent": round((1 - remaining) * 100, 1) if remaining else 0,
+            "reset_after_seconds": 0,
+            "remaining_fraction": remaining,
+        })
+    return result if result["windows"] else None
+
+
 @login_required
 def admin_credentials(request):
     """Display all CPAP auth credentials grouped by provider."""
@@ -365,12 +472,45 @@ def admin_credentials(request):
 
 @login_required
 def admin_credentials_refresh(request, auth_index):
-    """AJAX endpoint to refresh Kiro quota for a credential."""
+    """AJAX endpoint to refresh quota for a credential."""
     from django.http import JsonResponse
     if request.method != "POST":
         return JsonResponse({"ok": False, "error": "POST required"}, status=405)
+
+    import json as json_mod
+    provider = request.POST.get("provider", request.GET.get("provider", ""))
+
     try:
-        quota = _fetch_kiro_quota(auth_index)
-        return JsonResponse({"ok": True, "quota": quota})
+        if provider == "kiro":
+            # Use dedicated kiro-quota endpoint
+            import requests as http_requests
+            from urllib.parse import urljoin
+            headers = {"Authorization": f"Bearer {settings.CLIPROXY_MANAGEMENT_KEY}"}
+            resp = http_requests.get(
+                urljoin(settings.CLIPROXY_MANAGEMENT_BASE_URL, f"/v0/management/kiro-quota?auth_index={auth_index}"),
+                headers=headers,
+                timeout=30,
+            )
+            resp.raise_for_status()
+            return JsonResponse({"ok": True, "quota": resp.json(), "provider": "kiro"})
+
+        elif provider in QUOTA_CONFIGS:
+            config = QUOTA_CONFIGS[provider]
+            data = _cpap_api_call(auth_index, config["method"], config["url"], config.get("headers"))
+
+            if provider == "codex":
+                parsed = _parse_codex_quota(data)
+            elif provider == "gemini-cli":
+                parsed = _parse_gemini_quota(data)
+            else:
+                parsed = {"provider": provider, "raw": data}
+
+            if parsed:
+                return JsonResponse({"ok": True, "quota": parsed, "provider": provider})
+            else:
+                return JsonResponse({"ok": False, "error": "无法解析配额数据", "raw_status": data.get("status_code")})
+        else:
+            return JsonResponse({"ok": False, "error": f"不支持的 provider: {provider}"})
+
     except Exception as e:
         return JsonResponse({"ok": False, "error": str(e)}, status=500)
